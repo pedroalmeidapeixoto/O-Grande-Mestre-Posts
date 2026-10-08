@@ -1,0 +1,9 @@
+{
+  "timezone": "America/Sao_Paulo",
+  "window_minutes": 30,
+  "stories": [
+    { "days": ["fri", "sat"], "time": "18:00", "file": "weekend-promo.jpg" },
+    { "days": ["wed"], "time": "11:30", "file": "dish-of-the-day.jpg" },
+    { "days": ["sun"], "time": "11:00", "file": "sunday-lunch.mp4" }
+  ]
+}
