@@ -10,12 +10,13 @@ A small, production-running bot that publishes **Instagram Stories on a weekly s
 
 ## Features
 
-- **Weekly schedule as data**: days, local time and media file live in `schedule.json`; changing a post is a commit.
+- **Schedule as data**: weekdays (recurring) or a calendar date (one-off), local time and media file live in `schedule.json`; changing a post is a commit.
+- **Telegram notifications** (optional): a message when a Story goes out or fails, so nobody has to open Actions to check.
 - **Serverless**: GitHub Actions cron triggers the bot every 15 minutes; the repository itself hosts the media.
 - **Idempotent**: each Story is published once per day, even if the cron fires late, twice or overlaps.
 - **Tolerant to cron jitter**: a slot stays eligible for a configurable window (default 30 min) and still fires correctly across midnight.
 - **Safe by design**: credentials come only from environment variables / GitHub Secrets, and error messages never include the request URL, so the token cannot leak into logs.
-- **Tested and typed**: 41 tests, `ruff`, strict `mypy`, CI on Python 3.10–3.12.
+- **Tested and typed**: 57 tests, `ruff`, strict `mypy`, CI on Python 3.10–3.12.
 
 ## How it works
 
@@ -65,12 +66,19 @@ stories-bot --dry-run --now 2026-10-09T18:05        # preview what would be publ
   "timezone": "America/Sao_Paulo",
   "window_minutes": 30,
   "stories": [
-    { "days": ["fri", "sat"], "time": "18:00", "file": "weekend-promo.jpg" }
+    { "days": ["fri", "sat"], "time": "18:00", "file": "weekend-promo.jpg" },
+    { "date": "2026-12-25", "time": "10:00", "file": "christmas-closed.jpg" }
   ]
 }
 ```
 
-`days` use `mon tue wed thu fri sat sun`. Files live in [`media/`](media/): images are JPG/PNG at 1080×1920, videos MP4/MOV up to 60 s.
+Each Story has **either** `days` (recurring, using `mon tue wed thu fri sat sun`) **or** `date` (`YYYY-MM-DD`, published once and then inert). Files live in [`media/`](media/): images are JPG/PNG at 1080×1920, videos MP4/MOV up to 60 s.
+
+`window_minutes` is how long after its time a Story is still published. GitHub's cron can run hours late, so a wide window (up to 720) trades punctuality for never missing a post.
+
+### Notifications (optional)
+
+Create a bot with [@BotFather](https://t.me/BotFather), send it any message, then read your chat id from `https://api.telegram.org/bot<TOKEN>/getUpdates`. Add two more secrets, `TELEGRAM_BOT_TOKEN` and `TELEGRAM_CHAT_ID`. From then on every published Story, failure or setup error sends a short message. Without the secrets nothing changes. A failed notification never fails the run, and logs never contain the bot token.
 
 ## Setup for your own account
 
@@ -95,6 +103,7 @@ src/stories_bot/
   schedule.py     parse + validate schedule, decide what is due
   instagram.py    Graph API client (container → poll → publish)
   state.py        atomic record of published Stories
+  notify.py       optional Telegram notifications
   config.py       environment-based settings, public media URLs
   cli.py          `stories-bot` entry point
   token_setup.py  `stories-token` helper
@@ -124,12 +133,13 @@ Bot que publica **Stories no Instagram em horários semanais** para o restaurant
 
 ## Destaques
 
-- **Agenda como dados**: dias, horário local e arquivo ficam em `schedule.json`; mudar um post é um commit.
+- **Agenda como dados**: dias da semana (recorrente) ou uma data (avulso), horário local e arquivo ficam em `schedule.json`; mudar um post é um commit.
+- **Avisos no Telegram** (opcional): uma mensagem quando um Story sai ou falha, sem precisar abrir o Actions.
 - **Serverless**: o cron do GitHub Actions dispara o bot a cada 15 minutos; o próprio repositório hospeda as artes.
 - **Idempotente**: cada Story sai uma vez por dia, mesmo que o cron atrase, dispare duas vezes ou se sobreponha.
 - **Tolerante a atrasos do cron**: cada horário vale por uma janela configurável (padrão 30 min), inclusive na virada do dia.
 - **Seguro por padrão**: credenciais só vêm de variáveis de ambiente / GitHub Secrets, e as mensagens de erro nunca incluem a URL da requisição, então o token não vaza nos logs.
-- **Testado e tipado**: 41 testes, `ruff`, `mypy` estrito e CI em Python 3.10–3.12.
+- **Testado e tipado**: 57 testes, `ruff`, `mypy` estrito e CI em Python 3.10–3.12.
 
 ## Como funciona
 
@@ -152,7 +162,13 @@ copy schedule.example.json schedule.json
 stories-bot --dry-run --now 2026-10-09T18:05
 ```
 
-Dias aceitos: `mon tue wed thu fri sat sun`. As artes ficam em [`media/`](media/): imagens JPG/PNG 1080×1920, vídeos MP4/MOV de até 60 s.
+Cada Story usa **ou** `days` (recorrente, com `mon tue wed thu fri sat sun`) **ou** `date` (`AAAA-MM-DD`, sai uma vez e depois fica inativo). As artes ficam em [`media/`](media/): imagens JPG/PNG 1080×1920, vídeos MP4/MOV de até 60 s.
+
+`window_minutes` é quanto tempo depois do horário o Story ainda pode sair. O cron do GitHub pode atrasar horas, então uma janela larga (até 720) troca pontualidade por nunca perder um post.
+
+### Avisos (opcional)
+
+Crie um bot no [@BotFather](https://t.me/BotFather), mande qualquer mensagem para ele e pegue o seu chat id em `https://api.telegram.org/bot<TOKEN>/getUpdates`. Cadastre mais dois secrets: `TELEGRAM_BOT_TOKEN` e `TELEGRAM_CHAT_ID`. A partir daí, cada Story publicado, falha ou erro de configuração gera uma mensagem curta. Sem os secrets nada muda. Falha no aviso nunca derruba a execução, e os logs nunca mostram o token do bot.
 
 ## Configuração para sua conta
 
