@@ -8,26 +8,21 @@ from collections.abc import Mapping
 
 import requests
 
-log = logging.getLogger("stories_bot")
+from .telegram import TelegramApi, TelegramError
 
-API_URL = "https://api.telegram.org"
-REQUEST_TIMEOUT = 15
+log = logging.getLogger("stories_bot")
 
 
 class TelegramNotifier:
     """Sends short messages through a Telegram bot. It never raises: a notification that
     cannot be delivered must not make a successful publish look like a failure.
-
-    Log lines only carry the exception type or status code, never the request URL, because
-    the bot token is part of that URL.
     """
 
     def __init__(
         self, bot_token: str, chat_id: str, *, session: requests.Session | None = None
     ) -> None:
-        self._token = bot_token
+        self._api = TelegramApi(bot_token, session=session)
         self._chat_id = chat_id
-        self._session = session or requests.Session()
 
     @classmethod
     def from_env(cls, environ: Mapping[str, str] | None = None) -> TelegramNotifier | None:
@@ -40,13 +35,6 @@ class TelegramNotifier:
 
     def send(self, text: str) -> None:
         try:
-            response = self._session.post(
-                f"{API_URL}/bot{self._token}/sendMessage",
-                data={"chat_id": self._chat_id, "text": text},
-                timeout=REQUEST_TIMEOUT,
-            )
-        except requests.RequestException as exc:
-            log.warning("Telegram notification failed: %s", type(exc).__name__)
-            return
-        if not response.ok:
-            log.warning("Telegram notification failed: HTTP %s", response.status_code)
+            self._api.call("sendMessage", {"chat_id": self._chat_id, "text": text})
+        except TelegramError as exc:
+            log.warning("Telegram notification failed: %s", exc)

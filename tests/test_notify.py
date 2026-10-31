@@ -1,3 +1,4 @@
+import json
 import logging
 
 import pytest
@@ -21,8 +22,7 @@ def test_send_posts_the_message_to_the_chat():
     responses.post(SEND_URL, json={"ok": True})
     TelegramNotifier("SECRET-TOKEN", "42").send("hello")
 
-    body = responses.calls[0].request.body
-    assert "chat_id=42" in body and "text=hello" in body
+    assert json.loads(responses.calls[0].request.body) == {"chat_id": "42", "text": "hello"}
 
 
 @responses.activate
