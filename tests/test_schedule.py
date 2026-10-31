@@ -70,6 +70,10 @@ def test_video_detection():
         {"days": ["fri"], "time": "6pm", "file": "a.jpg"},  # bad time
         {"days": ["fri"], "time": "25:00", "file": "a.jpg"},  # impossible time
         {"days": ["fri"], "time": "18:00", "file": "a.gif"},  # unsupported media
+        {"time": "18:00", "file": "a.jpg"},  # neither days nor date
+        {"days": ["fri"], "date": "2026-10-09", "time": "18:00", "file": "a.jpg"},  # both
+        {"date": "09/10/2026", "time": "18:00", "file": "a.jpg"},  # bad date format
+        {"date": "2026-02-30", "time": "18:00", "file": "a.jpg"},  # impossible date
     ],
 )
 def test_invalid_slots_are_rejected(story):
@@ -90,6 +94,28 @@ def test_invalid_slots_are_rejected(story):
 def test_invalid_top_level_is_rejected(data):
     with pytest.raises(ScheduleError):
         parse_schedule(data)
+
+
+ONE_OFF = {"date": "2026-10-09", "time": "18:00", "file": "holiday.jpg"}
+
+
+def test_one_off_is_due_only_on_its_date():
+    schedule = make_schedule(ONE_OFF)
+    assert [d.key for d in due_stories(schedule, at(9, 18, 5), set())] == [
+        "2026-10-09|18:00|holiday.jpg"
+    ]
+    # the same weekday a week later must not fire again
+    assert due_stories(schedule, datetime(2026, 10, 16, 18, 5, tzinfo=TZ), set()) == []
+
+
+def test_one_off_is_published_once():
+    schedule = make_schedule(ONE_OFF)
+    assert due_stories(schedule, at(9, 18, 5), {"2026-10-09|18:00|holiday.jpg"}) == []
+
+
+def test_one_off_just_before_midnight_still_fires_after_midnight():
+    late = {"date": "2026-10-09", "time": "23:50", "file": "late.jpg"}
+    assert len(due_stories(make_schedule(late, window_minutes=60), at(10, 0, 5), set())) == 1
 
 
 def test_empty_schedule_is_valid():

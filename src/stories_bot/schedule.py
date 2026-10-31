@@ -25,11 +25,17 @@ class ScheduleError(ValueError):
 
 @dataclass(frozen=True)
 class Slot:
-    """One recurring Story: which weekdays, at what local time, which media file."""
+    """One Story: either recurring on some weekdays or one-off on a given date."""
 
     days: frozenset[str]
     at: time
     file: str
+    on: date | None = None  # one-off date; when set, `days` is empty
+
+    def runs_on(self, day: date) -> bool:
+        if self.on is not None:
+            return day == self.on
+        return WEEKDAYS[day.weekday()] in self.days
 
     @property
     def is_video(self) -> bool:
@@ -57,13 +63,26 @@ def _parse_slot(raw: Any, index: int) -> Slot:
     where = f"stories[{index}]"
     if not isinstance(raw, dict):
         raise ScheduleError(f"{where}: expected an object")
-    missing = {"days", "time", "file"} - raw.keys()
+    missing = {"time", "file"} - raw.keys()
     if missing:
         raise ScheduleError(f"{where}: missing field(s) {sorted(missing)}")
+    if ("days" in raw) == ("date" in raw):
+        raise ScheduleError(f"{where}: use exactly one of 'days' (recurring) or 'date' (one-off)")
 
-    days = raw["days"]
-    if not isinstance(days, list) or not days or not set(days) <= set(WEEKDAYS):
-        raise ScheduleError(f"{where}: 'days' must be a non-empty list of {list(WEEKDAYS)}")
+    days: frozenset[str] = frozenset()
+    on: date | None = None
+    if "date" in raw:
+        try:
+            on = date.fromisoformat(str(raw["date"]))
+        except ValueError:
+            raise ScheduleError(
+                f"{where}: 'date' must be YYYY-MM-DD, got {raw['date']!r}"
+            ) from None
+    else:
+        raw_days = raw["days"]
+        if not isinstance(raw_days, list) or not raw_days or not set(raw_days) <= set(WEEKDAYS):
+            raise ScheduleError(f"{where}: 'days' must be a non-empty list of {list(WEEKDAYS)}")
+        days = frozenset(raw_days)
 
     try:
         at = datetime.strptime(str(raw["time"]), "%H:%M").time()
@@ -75,7 +94,7 @@ def _parse_slot(raw: Any, index: int) -> Slot:
     if suffix not in IMAGE_EXTENSIONS | VIDEO_EXTENSIONS:
         raise ScheduleError(f"{where}: unsupported media type {suffix or file!r}")
 
-    return Slot(days=frozenset(days), at=at, file=str(file))
+    return Slot(days=days, at=at, file=str(file), on=on)
 
 
 def parse_schedule(data: Any) -> Schedule:
@@ -120,7 +139,7 @@ def due_stories(
     for slot in schedule.slots:
         for days_ago in (0, 1):
             day = now.date() - timedelta(days=days_ago)
-            if WEEKDAYS[day.weekday()] not in slot.days:
+            if not slot.runs_on(day):
                 continue
             start = datetime.combine(day, slot.at, tzinfo=schedule.timezone)
             key = slot.key(day)

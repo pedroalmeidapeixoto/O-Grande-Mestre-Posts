@@ -4,6 +4,7 @@
   "stories": [
     { "days": ["fri", "sat"], "time": "18:00", "file": "weekend-promo.jpg" },
     { "days": ["wed"], "time": "11:30", "file": "dish-of-the-day.jpg" },
-    { "days": ["sun"], "time": "11:00", "file": "sunday-lunch.mp4" }
+    { "days": ["sun"], "time": "11:00", "file": "sunday-lunch.mp4" },
+    { "date": "2026-12-25", "time": "10:00", "file": "christmas-closed.jpg" }
   ]
 }
