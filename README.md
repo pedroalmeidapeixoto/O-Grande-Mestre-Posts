@@ -12,11 +12,12 @@ A small, production-running bot that publishes **Instagram Stories on a weekly s
 
 - **Schedule as data**: weekdays (recurring) or a calendar date (one-off), local time and media file live in `schedule.json`; changing a post is a commit.
 - **Telegram notifications** (optional): a message when a Story goes out or fails, so nobody has to open Actions to check.
+- **Send arts through Telegram** (optional): drop the artwork in a private chat with the bot, caption it with when to publish, and it is saved and scheduled for you.
 - **Serverless**: GitHub Actions cron triggers the bot every 15 minutes; the repository itself hosts the media.
 - **Idempotent**: each Story is published once per day, even if the cron fires late, twice or overlaps.
 - **Tolerant to cron jitter**: a slot stays eligible for a configurable window (default 30 min) and still fires correctly across midnight.
 - **Safe by design**: credentials come only from environment variables / GitHub Secrets, and error messages never include the request URL, so the token cannot leak into logs.
-- **Tested and typed**: 57 tests, `ruff`, strict `mypy`, CI on Python 3.10–3.12.
+- **Tested and typed**: 112 tests, `ruff`, strict `mypy`, CI on Python 3.10–3.12.
 
 ## How it works
 
@@ -80,6 +81,21 @@ Each Story has **either** `days` (recurring, using `mon tue wed thu fri sat sun`
 
 Create a bot with [@BotFather](https://t.me/BotFather), send it any message, then read your chat id from `https://api.telegram.org/bot<TOKEN>/getUpdates`. Add two more secrets, `TELEGRAM_BOT_TOKEN` and `TELEGRAM_CHAT_ID`. From then on every published Story, failure or setup error sends a short message. Without the secrets nothing changes. A failed notification never fails the run, and logs never contain the bot token.
 
+### Sending arts through Telegram (optional)
+
+With the same two secrets, the bot also **receives** arts. Send the file to the bot as a **file** (paperclip → File, so Telegram does not compress it) and put the time in the caption:
+
+| Caption | Publishes |
+|---|---|
+| `hoje 18:30` · `18:30` | today at 18:30 |
+| `amanhã 12h` | tomorrow at 12:00 |
+| `15/11 10:00` · `2026-11-15 10:00` | on that date |
+| *(none)* | on the next run, within minutes |
+
+The bot replies to confirm, warns when the image is not 9:16, and answers `/fila` with what is scheduled. Each run, the `stories-inbox` step polls Telegram (`getUpdates`), saves the art in `media/`, appends a one-off entry to `schedule.json` and commits both **before** publishing, because Meta downloads the media from its public URL. The update offset is kept in `state/telegram.json`.
+
+Security: the bot only obeys the private chat whose id is `TELEGRAM_CHAT_ID`; messages from anyone else (including groups) are ignored without a reply. Telegram keeps unread messages for 24 hours, so runs must not stay silent for longer than that; a trigger more frequent than GitHub's own cron (for example an external scheduler calling `workflow_dispatch`) keeps replies fast. Telegram only lets bots download files up to 20 MB.
+
 ## Setup for your own account
 
 1. **Instagram**: a Professional (Business/Creator) account linked to a Facebook Page.
@@ -104,6 +120,10 @@ src/stories_bot/
   instagram.py    Graph API client (container → poll → publish)
   state.py        atomic record of published Stories
   notify.py       optional Telegram notifications
+  telegram.py     Bot API client (token never reaches logs)
+  inbox.py        receive arts from Telegram, parse captions, schedule
+  inbox_cli.py    `stories-inbox` entry point
+  media.py        PNG/JPEG size check for the 9:16 warning
   config.py       environment-based settings, public media URLs
   cli.py          `stories-bot` entry point
   token_setup.py  `stories-token` helper
@@ -135,11 +155,12 @@ Bot que publica **Stories no Instagram em horários semanais** para o restaurant
 
 - **Agenda como dados**: dias da semana (recorrente) ou uma data (avulso), horário local e arquivo ficam em `schedule.json`; mudar um post é um commit.
 - **Avisos no Telegram** (opcional): uma mensagem quando um Story sai ou falha, sem precisar abrir o Actions.
+- **Envio de artes pelo Telegram** (opcional): mande a arte numa conversa privada com o bot, com o horário na legenda, e ele salva e agenda para você.
 - **Serverless**: o cron do GitHub Actions dispara o bot a cada 15 minutos; o próprio repositório hospeda as artes.
 - **Idempotente**: cada Story sai uma vez por dia, mesmo que o cron atrase, dispare duas vezes ou se sobreponha.
 - **Tolerante a atrasos do cron**: cada horário vale por uma janela configurável (padrão 30 min), inclusive na virada do dia.
 - **Seguro por padrão**: credenciais só vêm de variáveis de ambiente / GitHub Secrets, e as mensagens de erro nunca incluem a URL da requisição, então o token não vaza nos logs.
-- **Testado e tipado**: 57 testes, `ruff`, `mypy` estrito e CI em Python 3.10–3.12.
+- **Testado e tipado**: 112 testes, `ruff`, `mypy` estrito e CI em Python 3.10–3.12.
 
 ## Como funciona
 
@@ -169,6 +190,21 @@ Cada Story usa **ou** `days` (recorrente, com `mon tue wed thu fri sat sun`) **o
 ### Avisos (opcional)
 
 Crie um bot no [@BotFather](https://t.me/BotFather), mande qualquer mensagem para ele e pegue o seu chat id em `https://api.telegram.org/bot<TOKEN>/getUpdates`. Cadastre mais dois secrets: `TELEGRAM_BOT_TOKEN` e `TELEGRAM_CHAT_ID`. A partir daí, cada Story publicado, falha ou erro de configuração gera uma mensagem curta. Sem os secrets nada muda. Falha no aviso nunca derruba a execução, e os logs nunca mostram o token do bot.
+
+### Enviar artes pelo Telegram (opcional)
+
+Com os mesmos dois secrets, o bot também **recebe** artes. Mande o arquivo ao bot como **arquivo** (clipe → Arquivo, para o Telegram não comprimir) e coloque o horário na legenda:
+
+| Legenda | Publica |
+|---|---|
+| `hoje 18:30` · `18:30` | hoje às 18:30 |
+| `amanhã 12h` | amanhã às 12:00 |
+| `15/11 10:00` · `2026-11-15 10:00` | nessa data |
+| *(sem legenda)* | na próxima rodada, em poucos minutos |
+
+O bot responde confirmando, avisa se a imagem não for 9:16 e responde ao `/fila` com o que está agendado. A cada rodada, o passo `stories-inbox` consulta o Telegram, salva a arte em `media/`, acrescenta uma entrada avulsa no `schedule.json` e commita os dois **antes** de publicar, porque a Meta baixa a mídia pela URL pública. A posição das mensagens lidas fica em `state/telegram.json`.
+
+Segurança: o bot só obedece ao chat privado cujo id está em `TELEGRAM_CHAT_ID`; mensagens de qualquer outra pessoa (inclusive grupos) são ignoradas sem resposta. O Telegram guarda mensagens não lidas por 24 horas, então as execuções não podem ficar mudas por mais que isso; um gatilho mais frequente que o cron do GitHub (por exemplo um agendador externo chamando `workflow_dispatch`) deixa as respostas rápidas. O Telegram só deixa bots baixarem arquivos de até 20 MB.
 
 ## Configuração para sua conta
 

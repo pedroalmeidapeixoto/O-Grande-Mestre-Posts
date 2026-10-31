@@ -32,7 +32,7 @@ def build_parser() -> argparse.ArgumentParser:
     return parser
 
 
-def _resolve_now(value: str | None, tz: ZoneInfo) -> datetime:
+def resolve_now(value: str | None, tz: ZoneInfo) -> datetime:
     if value:
         return datetime.fromisoformat(value).replace(tzinfo=tz)
     return datetime.now(tz)
@@ -53,7 +53,7 @@ def main(argv: Sequence[str] | None = None) -> int:
         log.error("Cannot load schedule %s: %s", args.schedule, exc)
         return EXIT_BAD_SETUP
 
-    now = _resolve_now(args.now, schedule.timezone)
+    now = resolve_now(args.now, schedule.timezone)
     due = due_stories(schedule, now, load_posted(args.state))
     log.info("%s: %d Story(ies) due", now.strftime("%Y-%m-%d %H:%M"), len(due))
 

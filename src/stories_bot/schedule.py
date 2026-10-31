@@ -126,6 +126,16 @@ def load_schedule(path: Path) -> Schedule:
     return parse_schedule(data)
 
 
+def add_one_off(path: Path, day: date, at: time, file: str) -> None:
+    """Append a one-off Story to the schedule file, leaving everything else as it was."""
+    data = json.loads(path.read_text(encoding="utf-8"))
+    data.setdefault("stories", []).append(
+        {"date": day.isoformat(), "time": f"{at:%H:%M}", "file": file}
+    )
+    parse_schedule(data)  # never write a schedule the bot itself would reject
+    path.write_text(json.dumps(data, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
+
+
 def due_stories(
     schedule: Schedule, now: datetime, already_posted: Collection[str]
 ) -> list[DueStory]:

@@ -25,6 +25,7 @@ dev = [
 [project.scripts]
 stories-bot = "stories_bot.cli:main"
 stories-token = "stories_bot.token_setup:main"
+stories-inbox = "stories_bot.inbox_cli:main"
 
 [tool.setuptools.packages.find]
 where = ["src"]
