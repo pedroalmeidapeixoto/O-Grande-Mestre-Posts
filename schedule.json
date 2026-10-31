@@ -1,5 +1,7 @@
 {
   "timezone": "America/Sao_Paulo",
   "window_minutes": 30,
-  "stories": []
+  "stories": [
+    { "days": ["sat"], "time": "12:20", "file": "feriado-fechado.jpg" }
+  ]
 }
