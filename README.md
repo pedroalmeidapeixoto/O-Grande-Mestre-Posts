@@ -107,7 +107,7 @@ Security: the bot only obeys the private chat whose id is `TELEGRAM_CHAT_ID`; me
 
 > **Token renewal:** long-lived tokens expire after ~60 days. Generate a new short token, run `stories-token` again and update the `IG_ACCESS_TOKEN` secret. A failed run shows up as a red workflow and a GitHub email.
 >
-> **Expiry reminder:** set the repository *variable* `IG_TOKEN_ISSUED` (Settings → Secrets and variables → Actions → Variables) to the day the token was issued, as `YYYY-MM-DD`. With Telegram configured, the bot then warns once a day during the last 10 days, and again if it has already expired. When the Graph API reports an invalid or expired token (codes 102/190), the bot stops at once with a clear message instead of retrying every Story.
+> **Expiry reminder:** set the repository *variable* `IG_TOKEN_EXPIRES` (Settings → Secrets and variables → Actions → Variables) to the day the token expires, as `YYYY-MM-DD`. Read it from Meta's [Access Token Debugger](https://developers.facebook.com/tools/debug/accesstoken/) (the field *Expires*); it is not always 60 days after issue. With Telegram configured, the bot then warns once a day during the last 10 days, and again if it has already expired. When the Graph API reports an invalid or expired token (codes 102/190), the bot stops at once with a clear message instead of retrying every Story.
 
 ## Limitations
 
@@ -221,7 +221,7 @@ Segurança: o bot só obedece ao chat privado cujo id está em `TELEGRAM_CHAT_ID
 
 > **Renovação do token:** tokens de longa duração expiram em ~60 dias. Gere um novo token curto, rode `stories-token` de novo e atualize o secret `IG_ACCESS_TOKEN`.
 >
-> **Lembrete de vencimento:** cadastre a *variável* de repositório `IG_TOKEN_ISSUED` (Settings → Secrets and variables → Actions → Variables) com o dia em que o token foi gerado, no formato `AAAA-MM-DD`. Com o Telegram configurado, o bot avisa uma vez por dia nos últimos 10 dias e de novo se já venceu. Quando a Graph API informa token inválido ou vencido (códigos 102/190), o bot para na hora com uma mensagem clara, em vez de tentar cada Story.
+> **Lembrete de vencimento:** cadastre a *variável* de repositório `IG_TOKEN_EXPIRES` (Settings → Secrets and variables → Actions → Variables) com o dia em que o token vence, no formato `AAAA-MM-DD`. Leia na [Ferramenta de Depuração de Token](https://developers.facebook.com/tools/debug/accesstoken/) da Meta (campo *Expira*); nem sempre são 60 dias depois da emissão. Com o Telegram configurado, o bot avisa uma vez por dia nos últimos 10 dias e de novo se já venceu. Quando a Graph API informa token inválido ou vencido (códigos 102/190), o bot para na hora com uma mensagem clara, em vez de tentar cada Story.
 
 ## Limitações
 

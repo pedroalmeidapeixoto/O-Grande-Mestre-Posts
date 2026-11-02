@@ -1,7 +1,8 @@
 """Reminder that the long-lived Instagram token is about to expire.
 
-The token lasts about 60 days and cannot be renewed without a person. The date it was issued
-is kept in the repository variable `IG_TOKEN_ISSUED` (YYYY-MM-DD), so no extra secret is needed.
+The token cannot be renewed without a person. Its real expiry date (Meta's Access Token
+Debugger shows it, and it is not always 60 days after issue) is kept in the repository variable
+`IG_TOKEN_EXPIRES` (YYYY-MM-DD), so no extra secret is needed.
 """
 
 from __future__ import annotations
@@ -16,21 +17,22 @@ from .state import write_json
 
 log = logging.getLogger("stories_bot")
 
-TOKEN_LIFETIME_DAYS = 60
 WARN_DAYS = 10
 
 
-def days_left(issued: date, today: date) -> int:
-    return TOKEN_LIFETIME_DAYS - (today - issued).days
+def days_left(expires: date, today: date) -> int:
+    return (expires - today).days
 
 
 def _message(left: int) -> str:
     how = (
         "Gere um novo com `stories-token` e atualize o secret IG_ACCESS_TOKEN "
-        "e a variável IG_TOKEN_ISSUED."
+        "e a variável IG_TOKEN_EXPIRES."
     )
     if left > 0:
         return f"⚠️ O token do Instagram vence em {left} dia(s). {how}"
+    if left == 0:
+        return f"❌ O token do Instagram vence hoje. {how}"
     return f"❌ O token do Instagram venceu (há {-left} dia(s)). {how}"
 
 
@@ -39,17 +41,17 @@ def reminder_due(environ: Mapping[str, str], now: datetime, state_path: Path) ->
 
     Returns None when the variable is unset or invalid, or there is nothing to say today.
     """
-    raw = environ.get("IG_TOKEN_ISSUED", "").strip()
+    raw = environ.get("IG_TOKEN_EXPIRES", "").strip()
     if not raw:
         return None
     try:
-        issued = date.fromisoformat(raw)
+        expires = date.fromisoformat(raw)
     except ValueError:
-        log.warning("IG_TOKEN_ISSUED must be YYYY-MM-DD, got %r; no expiry reminder", raw)
+        log.warning("IG_TOKEN_EXPIRES must be YYYY-MM-DD, got %r; no expiry reminder", raw)
         return None
 
     today = now.date()
-    left = days_left(issued, today)
+    left = days_left(expires, today)
     if left > WARN_DAYS:
         return None
 

@@ -45,7 +45,7 @@ jobs:
         env:
           IG_USER_ID: ${{ secrets.IG_USER_ID }}
           IG_ACCESS_TOKEN: ${{ secrets.IG_ACCESS_TOKEN }}
-          IG_TOKEN_ISSUED: ${{ vars.IG_TOKEN_ISSUED }} # YYYY-MM-DD, drives the expiry reminder
+          IG_TOKEN_EXPIRES: ${{ vars.IG_TOKEN_EXPIRES }} # YYYY-MM-DD, drives the expiry reminder
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
         run: stories-bot

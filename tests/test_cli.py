@@ -18,7 +18,7 @@ def project(tmp_path, monkeypatch):
         "GITHUB_REPOSITORY",
         "TELEGRAM_BOT_TOKEN",
         "TELEGRAM_CHAT_ID",
-        "IG_TOKEN_ISSUED",
+        "IG_TOKEN_EXPIRES",
     ):
         monkeypatch.delenv(name, raising=False)
     media = tmp_path / "media"
@@ -198,7 +198,7 @@ def test_dry_run_does_not_count_attempts(project):
 
 
 def test_token_reminder_is_sent_even_when_nothing_is_due(project, monkeypatch, sent):
-    monkeypatch.setenv("IG_TOKEN_ISSUED", "2026-08-20")  # expires 2026-10-19: 10 days left
+    monkeypatch.setenv("IG_TOKEN_EXPIRES", "2026-10-19")  # 10 days after the pretend "now"
     code = cli.main(
         [
             "--schedule", str(project / "schedule.json"),
