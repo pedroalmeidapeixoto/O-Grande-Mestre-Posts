@@ -18,6 +18,9 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          # Always the tip of the branch, so a re-run of an old run can still commit and push.
+          ref: ${{ github.event.repository.default_branch }}
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
@@ -42,6 +45,7 @@ jobs:
         env:
           IG_USER_ID: ${{ secrets.IG_USER_ID }}
           IG_ACCESS_TOKEN: ${{ secrets.IG_ACCESS_TOKEN }}
+          IG_TOKEN_ISSUED: ${{ vars.IG_TOKEN_ISSUED }} # YYYY-MM-DD, drives the expiry reminder
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
         run: stories-bot
@@ -50,5 +54,5 @@ jobs:
         run: |
           git config user.name "stories-bot"
           git config user.email "stories-bot@users.noreply.github.com"
-          git add state/posted.json || true
-          git diff --cached --quiet || (git commit -m "chore: record published stories" && git push)
+          for f in state/posted.json state/attempts.json state/reminders.json; do if [ -e "$f" ]; then git add "$f"; fi; done
+          git diff --cached --quiet || (git commit -m "chore: record published stories" && (git push || (git pull --rebase && git push)))
