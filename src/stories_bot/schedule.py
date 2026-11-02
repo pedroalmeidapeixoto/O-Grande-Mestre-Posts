@@ -132,6 +132,17 @@ def add_one_off(path: Path, day: date, at: time, file: str) -> None:
     data.setdefault("stories", []).append(
         {"date": day.isoformat(), "time": f"{at:%H:%M}", "file": file}
     )
+    _write_schedule(path, data)
+
+
+def remove_story(path: Path, index: int) -> None:
+    """Remove the Story at `index` (0-based position in the file's `stories` list)."""
+    data = json.loads(path.read_text(encoding="utf-8"))
+    del data["stories"][index]
+    _write_schedule(path, data)
+
+
+def _write_schedule(path: Path, data: Any) -> None:
     parse_schedule(data)  # never write a schedule the bot itself would reject
     path.write_text(json.dumps(data, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
 

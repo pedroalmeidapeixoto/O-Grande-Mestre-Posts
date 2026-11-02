@@ -19,8 +19,10 @@ from .schedule import (
     IMAGE_EXTENSIONS,
     VIDEO_EXTENSIONS,
     WEEKDAYS,
+    Slot,
     add_one_off,
     load_schedule,
+    remove_story,
 )
 from .state import load_offset, load_posted, save_offset
 from .telegram import TelegramApi, TelegramError
@@ -41,7 +43,8 @@ HELP = (
     '• Na legenda, diga quando publicar: "hoje 18:30", "amanhã 12h", "15/11 10:00" ou '
     '"2026-11-15 10:00".\n'
     "• Sem legenda, o Story sai na próxima rodada, em poucos minutos.\n"
-    "• /fila mostra o que está agendado."
+    "• /fila mostra o que está agendado, com um número para cada Story.\n"
+    "• /cancelar N cancela o Story de número N."
 )
 
 BAD_CAPTION = (
@@ -196,11 +199,14 @@ class Inbox:
             self._handle_art(message["message_id"], attachment, message.get("caption"))
 
     def _handle_text(self, text: str) -> None:
-        command = text.split()[0].split("@")[0].lower() if text.startswith("/") else ""
+        parts = text.split()
+        command = parts[0].split("@")[0].lower() if parts and text.startswith("/") else ""
         if command == "/start":
             self._reply("Olá! Eu publico Stories no Instagram do restaurante.\n\n" + HELP)
         elif command == "/fila":
             self._reply(self._queue_text())
+        elif command == "/cancelar":
+            self._reply(self._cancel(parts[1] if len(parts) > 1 else ""))
         else:
             self._reply(HELP)
 
@@ -250,25 +256,59 @@ class Inbox:
             )
         self._reply("\n".join(lines))
 
-    def _queue_text(self) -> str:
+    def _pending(self) -> list[tuple[int, Slot]]:
+        """Stories still to go out, as (position in schedule.json, slot).
+
+        The position is the number shown by /fila. It does not change when other Stories are
+        posted or expire, so /cancelar N never hits a different Story than the one listed.
+        """
         schedule = load_schedule(self._paths.schedule)
         posted = load_posted(self._paths.posted)
-        lines: list[str] = []
+        pending: list[tuple[int, Slot]] = []
+        for number, slot in enumerate(schedule.slots, start=1):
+            if slot.on is not None:
+                start = datetime.combine(slot.on, slot.at, tzinfo=schedule.timezone)
+                if slot.key(slot.on) in posted or start + schedule.window <= self._now:
+                    continue
+            pending.append((number, slot))
+        return pending
 
-        one_offs = sorted((s for s in schedule.slots if s.on), key=lambda s: (s.on, s.at))
-        for slot in one_offs:
-            assert slot.on is not None
-            start = datetime.combine(slot.on, slot.at, tzinfo=schedule.timezone)
-            if slot.key(slot.on) in posted or start + schedule.window <= self._now:
-                continue
-            lines.append(f"• {slot.on:%d/%m} {slot.at:%H:%M} — {slot.file}")
+    @staticmethod
+    def _describe(slot: Slot) -> str:
+        if slot.on is not None:
+            return f"{slot.on:%d/%m} {slot.at:%H:%M}"
+        days = ", ".join(sorted(slot.days, key=WEEKDAYS.index))
+        return f"toda semana ({days}) {slot.at:%H:%M}"
 
-        for slot in schedule.slots:
-            if not slot.on:
-                days = ", ".join(sorted(slot.days, key=WEEKDAYS.index))
-                lines.append(f"• toda semana ({days}) {slot.at:%H:%M} — {slot.file}")
+    def _queue_text(self) -> str:
+        pending = self._pending()
+        if not pending:
+            return "Nada agendado."
+        one_offs = sorted(
+            (p for p in pending if p[1].on), key=lambda p: (p[1].on or date.min, p[1].at)
+        )
+        recurring = [p for p in pending if not p[1].on]
+        lines = [f"{n}. {self._describe(slot)} — {slot.file}" for n, slot in one_offs + recurring]
+        return "Agendados:\n" + "\n".join(lines)
 
-        return "Agendados:\n" + "\n".join(lines) if lines else "Nada agendado."
+    def _cancel(self, argument: str) -> str:
+        usage = "Use /cancelar N, com N sendo o número que aparece em /fila."
+        if not argument.isdigit():
+            return usage
+        number = int(argument)
+        slot = next((s for n, s in self._pending() if n == number), None)
+        if slot is None:
+            return f"O número {number} não está na fila. {usage}"
+
+        remove_story(self._paths.schedule, number - 1)
+        still_used = any(s.file == slot.file for s in load_schedule(self._paths.schedule).slots)
+        art = self._paths.media_dir / slot.file
+        if not still_used and art.is_file():
+            try:
+                art.unlink()
+            except OSError as exc:
+                log.warning("Could not delete %s: %s", art, exc)
+        return f"🗑️ Cancelei {self._describe(slot)} — {slot.file}."
 
     def _reply(self, text: str) -> None:
         try:

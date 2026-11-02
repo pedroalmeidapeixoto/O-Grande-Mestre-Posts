@@ -18,7 +18,7 @@ A small, production-running bot that publishes **Instagram Stories on a weekly s
 - **Tolerant to cron jitter**: a slot stays eligible for a configurable window (default 30 min) and still fires correctly across midnight.
 - **Resilient**: a Story that keeps failing is retried up to 3 times and then given up on with a single alert (`state/attempts.json`); the publish record is pushed with a rebase fallback and the workflow always checks out the branch tip, so a concurrent push or a re-run can never cause a duplicate Story.
 - **Safe by design**: credentials come only from environment variables / GitHub Secrets, and error messages never include the request URL, so the token cannot leak into logs.
-- **Tested and typed**: 127 tests, `ruff`, strict `mypy`, CI on Python 3.10–3.12.
+- **Tested and typed**: 137 tests, `ruff`, strict `mypy`, CI on Python 3.10–3.12.
 
 ## How it works
 
@@ -93,7 +93,7 @@ With the same two secrets, the bot also **receives** arts. Send the file to the 
 | `15/11 10:00` · `2026-11-15 10:00` | on that date |
 | *(none)* | on the next run, within minutes |
 
-The bot replies to confirm, warns when the image is not 9:16, and answers `/fila` with what is scheduled. Each run, the `stories-inbox` step polls Telegram (`getUpdates`), saves the art in `media/`, appends a one-off entry to `schedule.json` and commits both **before** publishing, because Meta downloads the media from its public URL. The update offset is kept in `state/telegram.json`.
+The bot replies to confirm, warns when the image is not 9:16, and answers `/fila` with what is scheduled, each Story with a number. `/cancelar N` removes Story number N (and its art, unless another Story still uses it); numbers follow the position in `schedule.json`, so they stay the same while other Stories are posted or expire. Each run, the `stories-inbox` step polls Telegram (`getUpdates`), saves the art in `media/`, appends a one-off entry to `schedule.json` and commits both **before** publishing, because Meta downloads the media from its public URL. The update offset is kept in `state/telegram.json`.
 
 Security: the bot only obeys the private chat whose id is `TELEGRAM_CHAT_ID`; messages from anyone else (including groups) are ignored without a reply. Telegram keeps unread messages for 24 hours, so runs must not stay silent for longer than that; a trigger more frequent than GitHub's own cron (for example an external scheduler calling `workflow_dispatch`) keeps replies fast. Telegram only lets bots download files up to 20 MB.
 
@@ -165,7 +165,7 @@ Bot que publica **Stories no Instagram em horários semanais** para o restaurant
 - **Tolerante a atrasos do cron**: cada horário vale por uma janela configurável (padrão 30 min), inclusive na virada do dia.
 - **Seguro por padrão**: credenciais só vêm de variáveis de ambiente / GitHub Secrets, e as mensagens de erro nunca incluem a URL da requisição, então o token não vaza nos logs.
 - **Resiliente**: um Story que continua falhando é tentado até 3 vezes e depois abandonado com um único alerta (`state/attempts.json`); o registro de publicação é enviado com rebase de reserva e o workflow sempre usa a ponta da branch, então um push simultâneo ou um re-run nunca gera Story duplicado.
-- **Testado e tipado**: 127 testes, `ruff`, `mypy` estrito e CI em Python 3.10–3.12.
+- **Testado e tipado**: 137 testes, `ruff`, `mypy` estrito e CI em Python 3.10–3.12.
 
 ## Como funciona
 
@@ -207,7 +207,7 @@ Com os mesmos dois secrets, o bot também **recebe** artes. Mande o arquivo ao b
 | `15/11 10:00` · `2026-11-15 10:00` | nessa data |
 | *(sem legenda)* | na próxima rodada, em poucos minutos |
 
-O bot responde confirmando, avisa se a imagem não for 9:16 e responde ao `/fila` com o que está agendado. A cada rodada, o passo `stories-inbox` consulta o Telegram, salva a arte em `media/`, acrescenta uma entrada avulsa no `schedule.json` e commita os dois **antes** de publicar, porque a Meta baixa a mídia pela URL pública. A posição das mensagens lidas fica em `state/telegram.json`.
+O bot responde confirmando, avisa se a imagem não for 9:16 e responde ao `/fila` com o que está agendado, cada Story com um número. `/cancelar N` remove o Story de número N (e a arte, a menos que outro Story ainda a use); os números seguem a posição no `schedule.json`, então não mudam enquanto outros Stories saem ou vencem. A cada rodada, o passo `stories-inbox` consulta o Telegram, salva a arte em `media/`, acrescenta uma entrada avulsa no `schedule.json` e commita os dois **antes** de publicar, porque a Meta baixa a mídia pela URL pública. A posição das mensagens lidas fica em `state/telegram.json`.
 
 Segurança: o bot só obedece ao chat privado cujo id está em `TELEGRAM_CHAT_ID`; mensagens de qualquer outra pessoa (inclusive grupos) são ignoradas sem resposta. O Telegram guarda mensagens não lidas por 24 horas, então as execuções não podem ficar mudas por mais que isso; um gatilho mais frequente que o cron do GitHub (por exemplo um agendador externo chamando `workflow_dispatch`) deixa as respostas rápidas. O Telegram só deixa bots baixarem arquivos de até 20 MB.
 

@@ -286,9 +286,9 @@ def test_fila_lists_pending_one_offs_and_recurring_stories(project):
 
     assert api.sent[0] == (
         "Agendados:\n"
-        "• 31/10 18:30 — today.jpg\n"
-        "• 15/11 10:00 — later.jpg\n"
-        "• toda semana (fri, sat) 18:00 — weekly.jpg"
+        "2. 31/10 18:30 — today.jpg\n"
+        "1. 15/11 10:00 — later.jpg\n"
+        "5. toda semana (fri, sat) 18:00 — weekly.jpg"
     )
 
 
@@ -296,6 +296,114 @@ def test_fila_with_nothing_scheduled(project):
     api = FakeApi([text(10, "/fila@ograndemestrerestaurante_bot")])
     run(api, project)
     assert api.sent == ["Nada agendado."]
+
+
+def schedule_with(project, stories, media=()):
+    project.schedule.write_text(
+        json.dumps({"timezone": "America/Sao_Paulo", "window_minutes": 60, "stories": stories})
+    )
+    project.media_dir.mkdir(exist_ok=True)
+    for name in media:
+        (project.media_dir / name).write_bytes(b"art")
+
+
+def test_cancel_removes_the_story_and_its_art(project):
+    schedule_with(
+        project,
+        [
+            {"date": "2026-10-31", "time": "18:30", "file": "a.jpg"},
+            {"date": "2026-11-01", "time": "10:00", "file": "b.jpg"},
+        ],
+        media=["a.jpg", "b.jpg"],
+    )
+    api = FakeApi([text(10, "/cancelar 1")])
+    run(api, project)
+
+    assert [s["file"] for s in stories(project)] == ["b.jpg"]
+    assert not (project.media_dir / "a.jpg").exists()
+    assert (project.media_dir / "b.jpg").exists()
+    assert api.sent == ["🗑️ Cancelei 31/10 18:30 — a.jpg."]
+
+
+def test_numbers_do_not_shift_when_earlier_stories_are_no_longer_listed(project):
+    schedule_with(
+        project,
+        [
+            {"date": "2026-10-30", "time": "10:00", "file": "old.jpg"},  # past: not listed
+            {"date": "2026-10-31", "time": "18:30", "file": "today.jpg"},
+        ],
+        media=["old.jpg", "today.jpg"],
+    )
+    api = FakeApi([text(10, "/fila"), text(11, "/cancelar 2")])
+    run(api, project)
+
+    assert api.sent[0] == "Agendados:\n2. 31/10 18:30 — today.jpg"
+    assert [s["file"] for s in stories(project)] == ["old.jpg"]
+    assert (project.media_dir / "old.jpg").exists()
+
+
+def test_cancel_keeps_an_art_that_another_story_still_uses(project):
+    schedule_with(
+        project,
+        [
+            {"days": ["sat"], "time": "18:00", "file": "weekly.jpg"},
+            {"date": "2026-11-07", "time": "18:00", "file": "weekly.jpg"},
+        ],
+        media=["weekly.jpg"],
+    )
+    api = FakeApi([text(10, "/cancelar 2")])
+    run(api, project)
+
+    assert len(stories(project)) == 1
+    assert (project.media_dir / "weekly.jpg").exists()
+
+
+def test_cancel_works_for_recurring_stories_and_with_the_bot_suffix(project):
+    schedule_with(
+        project, [{"days": ["sat", "fri"], "time": "18:00", "file": "weekly.jpg"}], ["weekly.jpg"]
+    )
+    api = FakeApi([text(10, "/cancelar@ograndemestrerestaurante_bot 1")])
+    run(api, project)
+
+    assert stories(project) == []
+    assert api.sent == ["🗑️ Cancelei toda semana (fri, sat) 18:00 — weekly.jpg."]
+
+
+@pytest.mark.parametrize("command", ["/cancelar", "/cancelar abc", "/cancelar 0", "/cancelar -1"])
+def test_cancel_needs_a_number_from_the_list(project, command):
+    schedule_with(project, [{"date": "2026-10-31", "time": "18:30", "file": "a.jpg"}], ["a.jpg"])
+    api = FakeApi([text(10, command)])
+    run(api, project)
+
+    assert len(stories(project)) == 1
+    assert "Use /cancelar N" in api.sent[0]
+
+
+def test_cancel_refuses_numbers_that_are_not_pending(project):
+    schedule_with(
+        project,
+        [
+            {"date": "2026-10-30", "time": "10:00", "file": "past.jpg"},
+            {"date": "2026-10-31", "time": "11:30", "file": "done.jpg"},
+        ],
+        media=["past.jpg", "done.jpg"],
+    )
+    project.posted.parent.mkdir()
+    project.posted.write_text(json.dumps({"2026-10-31|11:30|done.jpg": {}}))
+    api = FakeApi([text(10, "/cancelar 1"), text(11, "/cancelar 2"), text(12, "/cancelar 9")])
+    run(api, project)
+
+    assert len(stories(project)) == 2
+    assert all("não está na fila" in reply for reply in api.sent)
+
+
+def test_a_stranger_cannot_cancel(project):
+    schedule_with(project, [{"date": "2026-10-31", "time": "18:30", "file": "a.jpg"}], ["a.jpg"])
+    api = FakeApi([text(10, "/cancelar 1", chat=999)])
+    run(api, project)
+
+    assert len(stories(project)) == 1
+    assert api.sent == []
 
 
 def test_a_failed_reply_does_not_break_the_run(project):
