@@ -18,6 +18,7 @@ def project(tmp_path, monkeypatch):
         "GITHUB_REPOSITORY",
         "TELEGRAM_BOT_TOKEN",
         "TELEGRAM_CHAT_ID",
+        "IG_TOKEN_ISSUED",
     ):
         monkeypatch.delenv(name, raising=False)
     media = tmp_path / "media"
@@ -36,6 +37,8 @@ def run(project, *extra):
             "--schedule", str(project / "schedule.json"),
             "--media-dir", str(project / "media"),
             "--state", str(project / "state" / "posted.json"),
+            "--attempts", str(project / "state" / "attempts.json"),
+            "--reminders", str(project / "state" / "reminders.json"),
             "--now", FRIDAY_18_05,
             *extra,
         ]
@@ -109,7 +112,10 @@ def test_failure_sends_a_notification(project, monkeypatch, sent):
     monkeypatch.setattr(InstagramClient, "publish_story", boom)
 
     assert run(project) == cli.EXIT_FAILED
-    assert sent == ["❌ Falha ao publicar promo.jpg: HTTP 400: nope"]
+    assert sent == [
+        "❌ Falha ao publicar promo.jpg: HTTP 400: nope."
+        " Tentativa 1 de 3; tento de novo na próxima rodada."
+    ]
 
 
 def test_missing_credentials_sends_a_notification(project, sent):
@@ -129,6 +135,82 @@ def test_dry_run_and_nothing_due_send_no_notification(project, sent):
     )  # fmt: skip
     assert code == cli.EXIT_OK
     assert sent == []
+
+
+def attempts_of(project):
+    return json.loads((project / "state" / "attempts.json").read_text())
+
+
+def failing_publish(monkeypatch, message="HTTP 400: nope", code=None):
+    def boom(self, url, *, is_video):
+        raise InstagramError(message, code)
+
+    monkeypatch.setattr(InstagramClient, "publish_story", boom)
+
+
+def test_a_failing_story_is_retried_then_given_up(project, monkeypatch, sent):
+    configure(monkeypatch)
+    failing_publish(monkeypatch)
+
+    for _ in range(3):
+        assert run(project) == cli.EXIT_FAILED
+    assert next(iter(attempts_of(project).values()))["count"] == 3
+    assert "Tentativa 1 de 3" in sent[0] and "Desisti" in sent[2]
+
+    # given up: the next run does not try (or complain) again
+    assert run(project) == cli.EXIT_OK
+    assert len(sent) == 3
+
+
+def test_a_successful_retry_is_published(project, monkeypatch, sent):
+    configure(monkeypatch)
+    failing_publish(monkeypatch)
+    assert run(project) == cli.EXIT_FAILED
+
+    monkeypatch.setattr(InstagramClient, "publish_story", lambda self, url, *, is_video: "m1")
+    assert run(project) == cli.EXIT_OK
+    assert sent[-1].startswith("✅")
+
+
+def test_expired_token_stops_without_counting_attempts(project, monkeypatch, sent):
+    configure(monkeypatch)
+    failing_publish(monkeypatch, "HTTP 400: Error validating access token", code=190)
+
+    assert run(project) == cli.EXIT_BAD_SETUP
+    assert not (project / "state" / "attempts.json").exists()
+    assert len(sent) == 1 and "recusou o token" in sent[0] and "stories-token" in sent[0]
+
+
+def test_missing_media_is_counted_and_given_up(project, sent):
+    (project / "media" / "promo.jpg").unlink()
+    for _ in range(3):
+        assert run(project) == cli.EXIT_FAILED
+
+    assert next(iter(attempts_of(project).values()))["count"] == 3
+    assert "não encontrado" in sent[0] and "Desisti" in sent[2]
+    assert run(project) == cli.EXIT_OK
+
+
+def test_dry_run_does_not_count_attempts(project):
+    (project / "media" / "promo.jpg").unlink()
+    assert run(project, "--dry-run") == cli.EXIT_FAILED
+    assert not (project / "state" / "attempts.json").exists()
+
+
+def test_token_reminder_is_sent_even_when_nothing_is_due(project, monkeypatch, sent):
+    monkeypatch.setenv("IG_TOKEN_ISSUED", "2026-08-20")  # expires 2026-10-19: 10 days left
+    code = cli.main(
+        [
+            "--schedule", str(project / "schedule.json"),
+            "--media-dir", str(project / "media"),
+            "--state", str(project / "state" / "posted.json"),
+            "--attempts", str(project / "state" / "attempts.json"),
+            "--reminders", str(project / "state" / "reminders.json"),
+            "--now", "2026-10-09T12:00",
+        ]
+    )  # fmt: skip
+    assert code == cli.EXIT_OK
+    assert len(sent) == 1 and "vence em 10 dia(s)" in sent[0]
 
 
 def test_missing_media_file_fails(project):

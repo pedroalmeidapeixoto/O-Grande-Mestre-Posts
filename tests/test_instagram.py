@@ -60,6 +60,21 @@ def test_api_error_surfaces_message_without_leaking_token():
 
 
 @responses.activate
+@pytest.mark.parametrize(
+    ("code", "is_auth"), [(190, True), (102, True), (100, False), (None, False)]
+)
+def test_graph_error_code_is_kept_and_auth_errors_are_flagged(code, is_auth):
+    error = {"message": "nope"} if code is None else {"message": "nope", "code": code}
+    responses.post(MEDIA, status=400, json={"error": error})
+
+    with pytest.raises(InstagramError) as exc:
+        make_client().publish_story("https://x/a.jpg", is_video=False)
+
+    assert exc.value.code == code
+    assert exc.value.is_auth_error is is_auth
+
+
+@responses.activate
 def test_network_error_does_not_leak_token():
     responses.post(MEDIA, body=requests.ConnectionError(f"failed for token={TOKEN}"))
 

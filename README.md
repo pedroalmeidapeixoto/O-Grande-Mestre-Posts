@@ -16,8 +16,9 @@ A small, production-running bot that publishes **Instagram Stories on a weekly s
 - **Serverless**: GitHub Actions cron triggers the bot every 15 minutes; the repository itself hosts the media.
 - **Idempotent**: each Story is published once per day, even if the cron fires late, twice or overlaps.
 - **Tolerant to cron jitter**: a slot stays eligible for a configurable window (default 30 min) and still fires correctly across midnight.
+- **Resilient**: a Story that keeps failing is retried up to 3 times and then given up on with a single alert (`state/attempts.json`); the publish record is pushed with a rebase fallback and the workflow always checks out the branch tip, so a concurrent push or a re-run can never cause a duplicate Story.
 - **Safe by design**: credentials come only from environment variables / GitHub Secrets, and error messages never include the request URL, so the token cannot leak into logs.
-- **Tested and typed**: 112 tests, `ruff`, strict `mypy`, CI on Python 3.10–3.12.
+- **Tested and typed**: 127 tests, `ruff`, strict `mypy`, CI on Python 3.10–3.12.
 
 ## How it works
 
@@ -105,6 +106,8 @@ Security: the bot only obeys the private chat whose id is `TELEGRAM_CHAT_ID`; me
 5. Add artwork to `media/`, fill `schedule.json`, push. The `Publish Stories` workflow does the rest; you can also run it manually from the *Actions* tab.
 
 > **Token renewal:** long-lived tokens expire after ~60 days. Generate a new short token, run `stories-token` again and update the `IG_ACCESS_TOKEN` secret. A failed run shows up as a red workflow and a GitHub email.
+>
+> **Expiry reminder:** set the repository *variable* `IG_TOKEN_ISSUED` (Settings → Secrets and variables → Actions → Variables) to the day the token was issued, as `YYYY-MM-DD`. With Telegram configured, the bot then warns once a day during the last 10 days, and again if it has already expired. When the Graph API reports an invalid or expired token (codes 102/190), the bot stops at once with a clear message instead of retrying every Story.
 
 ## Limitations
 
@@ -121,6 +124,7 @@ src/stories_bot/
   state.py        atomic record of published Stories
   notify.py       optional Telegram notifications
   telegram.py     Bot API client (token never reaches logs)
+  token_expiry.py daily reminder before the Instagram token expires
   inbox.py        receive arts from Telegram, parse captions, schedule
   inbox_cli.py    `stories-inbox` entry point
   media.py        PNG/JPEG size check for the 9:16 warning
@@ -160,7 +164,8 @@ Bot que publica **Stories no Instagram em horários semanais** para o restaurant
 - **Idempotente**: cada Story sai uma vez por dia, mesmo que o cron atrase, dispare duas vezes ou se sobreponha.
 - **Tolerante a atrasos do cron**: cada horário vale por uma janela configurável (padrão 30 min), inclusive na virada do dia.
 - **Seguro por padrão**: credenciais só vêm de variáveis de ambiente / GitHub Secrets, e as mensagens de erro nunca incluem a URL da requisição, então o token não vaza nos logs.
-- **Testado e tipado**: 112 testes, `ruff`, `mypy` estrito e CI em Python 3.10–3.12.
+- **Resiliente**: um Story que continua falhando é tentado até 3 vezes e depois abandonado com um único alerta (`state/attempts.json`); o registro de publicação é enviado com rebase de reserva e o workflow sempre usa a ponta da branch, então um push simultâneo ou um re-run nunca gera Story duplicado.
+- **Testado e tipado**: 127 testes, `ruff`, `mypy` estrito e CI em Python 3.10–3.12.
 
 ## Como funciona
 
@@ -215,6 +220,8 @@ Segurança: o bot só obedece ao chat privado cujo id está em `TELEGRAM_CHAT_ID
 5. Coloque as artes em `media/`, preencha o `schedule.json` e faça push. O workflow `Publish Stories` cuida do resto; também dá para rodá-lo manualmente na aba *Actions*.
 
 > **Renovação do token:** tokens de longa duração expiram em ~60 dias. Gere um novo token curto, rode `stories-token` de novo e atualize o secret `IG_ACCESS_TOKEN`.
+>
+> **Lembrete de vencimento:** cadastre a *variável* de repositório `IG_TOKEN_ISSUED` (Settings → Secrets and variables → Actions → Variables) com o dia em que o token foi gerado, no formato `AAAA-MM-DD`. Com o Telegram configurado, o bot avisa uma vez por dia nos últimos 10 dias e de novo se já venceu. Quando a Graph API informa token inválido ou vencido (códigos 102/190), o bot para na hora com uma mensagem clara, em vez de tentar cada Story.
 
 ## Limitações
 

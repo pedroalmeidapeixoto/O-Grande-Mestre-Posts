@@ -14,13 +14,24 @@ import requests
 
 GRAPH_URL = "https://graph.facebook.com/v21.0"
 REQUEST_TIMEOUT = 60
+AUTH_ERROR_CODES = frozenset({102, 190})  # invalid session / expired or revoked access token
 
 
 class InstagramError(RuntimeError):
     """The Graph API rejected a request or the container never became ready.
 
     Messages never include the request URL, so the access token cannot leak into logs.
+    `code` is the Graph API error code when there is one.
     """
+
+    def __init__(self, message: str, code: int | None = None) -> None:
+        super().__init__(message)
+        self.code = code
+
+    @property
+    def is_auth_error(self) -> bool:
+        """The token is expired or revoked: every other Story would fail the same way."""
+        return self.code in AUTH_ERROR_CODES
 
 
 class InstagramClient:
@@ -84,6 +95,10 @@ class InstagramClient:
         except ValueError:
             body = {}
         if not response.ok:
-            message = body.get("error", {}).get("message", "no details")
-            raise InstagramError(f"HTTP {response.status_code}: {message}")
+            error = body.get("error", {})
+            code = error.get("code")
+            raise InstagramError(
+                f"HTTP {response.status_code}: {error.get('message', 'no details')}",
+                code if isinstance(code, int) else None,
+            )
         return body
