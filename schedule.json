@@ -1,5 +1,11 @@
 {
   "timezone": "America/Sao_Paulo",
   "window_minutes": 420,
-  "stories": []
+  "stories": [
+    {
+      "date": "2026-11-03",
+      "time": "10:40",
+      "file": "cardapio-20261103-self-service.jpg"
+    }
+  ]
 }
