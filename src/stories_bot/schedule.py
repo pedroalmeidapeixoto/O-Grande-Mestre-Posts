@@ -59,6 +59,13 @@ class DueStory:
     key: str
 
 
+@dataclass(frozen=True)
+class MissedStory:
+    slot: Slot
+    key: str
+    start: datetime
+
+
 def _parse_slot(raw: Any, index: int) -> Slot:
     where = f"stories[{index}]"
     if not isinstance(raw, dict):
@@ -167,3 +174,40 @@ def due_stories(
             if start <= now < start + schedule.window and key not in already_posted:
                 due.append(DueStory(slot=slot, key=key))
     return due
+
+
+def missed_stories(
+    schedule: Schedule,
+    now: datetime,
+    already_posted: Collection[str],
+    lookback: timedelta = timedelta(hours=6),
+) -> list[MissedStory]:
+    """Occurrences whose window closed within `lookback` without the Story going out."""
+    now = now.astimezone(schedule.timezone)
+    missed: list[MissedStory] = []
+    for slot in schedule.slots:
+        for days_ago in (0, 1):
+            day = now.date() - timedelta(days=days_ago)
+            if not slot.runs_on(day):
+                continue
+            start = datetime.combine(day, slot.at, tzinfo=schedule.timezone)
+            closed = start + schedule.window
+            key = slot.key(day)
+            if closed <= now < closed + lookback and key not in already_posted:
+                missed.append(MissedStory(slot=slot, key=key, start=start))
+    return missed
+
+
+def prune_one_offs(path: Path, before: date) -> list[str]:
+    """Drop one-off Stories dated before `before`; return the art files they used."""
+    data = json.loads(path.read_text(encoding="utf-8"))
+    kept, removed = [], []
+    for raw in data.get("stories", []):
+        if "date" in raw and date.fromisoformat(str(raw["date"])) < before:
+            removed.append(str(raw["file"]))
+        else:
+            kept.append(raw)
+    if removed:
+        data["stories"] = kept
+        _write_schedule(path, data)
+    return removed

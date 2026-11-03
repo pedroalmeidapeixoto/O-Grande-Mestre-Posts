@@ -16,9 +16,10 @@ A small, production-running bot that publishes **Instagram Stories on a weekly s
 - **Serverless**: GitHub Actions cron triggers the bot every 15 minutes; the repository itself hosts the media.
 - **Idempotent**: each Story is published once per day, even if the cron fires late, twice or overlaps.
 - **Tolerant to cron jitter**: a slot stays eligible for a configurable window (default 30 min) and still fires correctly across midnight.
+- **Never silently lost**: a Story whose window closes without going out is reported once on Telegram (`state/missed.json`), and `stories-tidy` keeps `schedule.json`, `media/` and the state files from growing by dropping one-off Stories 2 days after their date together with their arts (an art another Story still uses is kept).
 - **Resilient**: a Story that keeps failing is retried up to 3 times and then given up on with a single alert (`state/attempts.json`); the publish record is pushed with a rebase fallback and the workflow always checks out the branch tip, so a concurrent push or a re-run can never cause a duplicate Story.
 - **Safe by design**: credentials come only from environment variables / GitHub Secrets, and error messages never include the request URL, so the token cannot leak into logs.
-- **Tested and typed**: 137 tests, `ruff`, strict `mypy`, CI on Python 3.10–3.12.
+- **Tested and typed**: 153 tests, `ruff`, strict `mypy`, CI on Python 3.10–3.12.
 
 ## How it works
 
@@ -125,6 +126,7 @@ src/stories_bot/
   notify.py       optional Telegram notifications
   telegram.py     Bot API client (token never reaches logs)
   token_expiry.py daily reminder before the Instagram token expires
+  tidy.py         `stories-tidy`: drop old one-off Stories, their arts and stale records
   inbox.py        receive arts from Telegram, parse captions, schedule
   inbox_cli.py    `stories-inbox` entry point
   media.py        PNG/JPEG size check for the 9:16 warning
@@ -164,8 +166,9 @@ Bot que publica **Stories no Instagram em horários semanais** para o restaurant
 - **Idempotente**: cada Story sai uma vez por dia, mesmo que o cron atrase, dispare duas vezes ou se sobreponha.
 - **Tolerante a atrasos do cron**: cada horário vale por uma janela configurável (padrão 30 min), inclusive na virada do dia.
 - **Seguro por padrão**: credenciais só vêm de variáveis de ambiente / GitHub Secrets, e as mensagens de erro nunca incluem a URL da requisição, então o token não vaza nos logs.
+- **Nada se perde em silêncio**: um Story cuja janela fecha sem ter saído é avisado uma vez no Telegram (`state/missed.json`), e o `stories-tidy` impede que `schedule.json`, `media/` e os arquivos de estado cresçam para sempre, removendo os Stories avulsos 2 dias depois da data, junto com as artes (uma arte que outro Story ainda usa é mantida).
 - **Resiliente**: um Story que continua falhando é tentado até 3 vezes e depois abandonado com um único alerta (`state/attempts.json`); o registro de publicação é enviado com rebase de reserva e o workflow sempre usa a ponta da branch, então um push simultâneo ou um re-run nunca gera Story duplicado.
-- **Testado e tipado**: 137 testes, `ruff`, `mypy` estrito e CI em Python 3.10–3.12.
+- **Testado e tipado**: 153 testes, `ruff`, `mypy` estrito e CI em Python 3.10–3.12.
 
 ## Como funciona
 

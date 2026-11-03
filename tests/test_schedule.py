@@ -1,9 +1,16 @@
-from datetime import datetime
+import json
+from datetime import date, datetime
 from zoneinfo import ZoneInfo
 
 import pytest
 
-from stories_bot.schedule import ScheduleError, due_stories, parse_schedule
+from stories_bot.schedule import (
+    ScheduleError,
+    due_stories,
+    missed_stories,
+    parse_schedule,
+    prune_one_offs,
+)
 
 TZ = ZoneInfo("America/Sao_Paulo")
 
@@ -120,3 +127,47 @@ def test_one_off_just_before_midnight_still_fires_after_midnight():
 
 def test_empty_schedule_is_valid():
     assert parse_schedule({}).slots == ()
+
+
+def test_missed_stories_lists_windows_that_closed_recently():
+    schedule = make_schedule(FRIDAY_PROMO)  # 30 min window
+    assert missed_stories(schedule, at(9, 18, 29), set()) == []  # window still open
+    lost = missed_stories(schedule, at(9, 18, 30), set())
+    assert [m.key for m in lost] == ["2026-10-09|18:00|promo.jpg"]
+    assert lost[0].start == at(9, 18, 0)
+    assert missed_stories(schedule, at(9, 23, 59), set()) != []  # 5h29 after it closed
+    assert missed_stories(schedule, at(10, 0, 31), set()) == []  # over the 6h lookback
+
+
+def test_missed_stories_ignores_posted_and_wrong_days():
+    schedule = make_schedule(FRIDAY_PROMO)
+    assert missed_stories(schedule, at(9, 19, 0), {"2026-10-09|18:00|promo.jpg"}) == []
+    assert missed_stories(schedule, at(8, 19, 0), set()) == []  # a Thursday
+
+
+def test_missed_stories_covers_one_offs_and_the_previous_day():
+    late = {"date": "2026-10-09", "time": "23:50", "file": "late.jpg"}
+    lost = missed_stories(make_schedule(late), at(10, 0, 30), set())  # Saturday 00:30
+    assert [m.key for m in lost] == ["2026-10-09|23:50|late.jpg"]
+
+
+def test_prune_one_offs_removes_only_old_dated_entries(tmp_path):
+    path = tmp_path / "schedule.json"
+    path.write_text(
+        json.dumps(
+            {
+                "stories": [
+                    {"date": "2026-10-01", "time": "10:00", "file": "old.jpg"},
+                    {"date": "2026-10-09", "time": "10:00", "file": "today.jpg"},
+                    {"days": ["fri"], "time": "18:00", "file": "weekly.jpg"},
+                ]
+            }
+        )
+    )
+
+    assert prune_one_offs(path, date(2026, 10, 7)) == ["old.jpg"]
+    assert [s["file"] for s in json.loads(path.read_text())["stories"]] == [
+        "today.jpg",
+        "weekly.jpg",
+    ]
+    assert prune_one_offs(path, date(2026, 10, 7)) == []

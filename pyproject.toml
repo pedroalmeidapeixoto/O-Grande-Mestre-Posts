@@ -26,6 +26,7 @@ dev = [
 stories-bot = "stories_bot.cli:main"
 stories-token = "stories_bot.token_setup:main"
 stories-inbox = "stories_bot.inbox_cli:main"
+stories-tidy = "stories_bot.tidy:main"
 
 [tool.setuptools.packages.find]
 where = ["src"]

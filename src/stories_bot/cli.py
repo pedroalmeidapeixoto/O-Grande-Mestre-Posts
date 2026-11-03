@@ -13,8 +13,16 @@ from zoneinfo import ZoneInfo
 from .config import ConfigError, Settings, media_url
 from .instagram import InstagramClient, InstagramError
 from .notify import TelegramNotifier
-from .schedule import DueStory, ScheduleError, due_stories, load_schedule
-from .state import MAX_ATTEMPTS, load_attempts, load_posted, record_failure, record_post
+from .schedule import DueStory, ScheduleError, due_stories, load_schedule, missed_stories
+from .state import (
+    MAX_ATTEMPTS,
+    load_attempts,
+    load_missed,
+    load_posted,
+    record_failure,
+    record_missed,
+    record_post,
+)
 from .token_expiry import reminder_due
 
 log = logging.getLogger("stories_bot")
@@ -31,6 +39,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--state", type=Path, default=Path("state/posted.json"))
     parser.add_argument("--attempts", type=Path, default=Path("state/attempts.json"))
     parser.add_argument("--reminders", type=Path, default=Path("state/reminders.json"))
+    parser.add_argument("--missed", type=Path, default=Path("state/missed.json"))
     parser.add_argument("--dry-run", action="store_true", help="show what would be published")
     parser.add_argument("--now", help="pretend it is this local time, e.g. 2026-10-09T18:05")
     return parser
@@ -70,9 +79,25 @@ def main(argv: Sequence[str] | None = None) -> int:
         if reminder:
             notifier.send(reminder)
 
+    posted = load_posted(args.state)
     attempts = load_attempts(args.attempts)
+
+    if notifier is not None:  # tell about Stories whose window closed without them going out
+        reported = load_missed(args.missed)
+        minutes = int(schedule.window.total_seconds() // 60)
+        for lost in missed_stories(schedule, now, posted):
+            gave_up = attempts.get(lost.key, {}).get("count", 0) >= MAX_ATTEMPTS
+            if lost.key in reported or gave_up:  # a give-up was already announced
+                continue
+            notifier.send(
+                f"⚠️ O Story {lost.slot.file} (marcado para {lost.start:%d/%m %H:%M}) não saiu "
+                f"dentro da janela de {minutes} min e não será mais publicado. "
+                "Se ainda valer, mande a arte de novo."
+            )
+            record_missed(args.missed, lost.key, now)
+
     due: list[DueStory] = []
-    for story in due_stories(schedule, now, load_posted(args.state)):
+    for story in due_stories(schedule, now, posted):
         if attempts.get(story.key, {}).get("count", 0) >= MAX_ATTEMPTS:
             log.warning("Giving up on %s after %d failed attempts", story.slot.file, MAX_ATTEMPTS)
         else:

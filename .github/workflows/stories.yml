@@ -33,6 +33,10 @@ jobs:
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
         run: stories-inbox
+      - name: Tidy old Stories, arts and records
+        # Housekeeping must never block publishing.
+        continue-on-error: true
+        run: stories-tidy
       - name: Commit received arts
         # The arts must be on GitHub before publishing: Meta downloads them from the public URL.
         run: |
@@ -54,5 +58,5 @@ jobs:
         run: |
           git config user.name "stories-bot"
           git config user.email "stories-bot@users.noreply.github.com"
-          for f in state/posted.json state/attempts.json state/reminders.json; do if [ -e "$f" ]; then git add "$f"; fi; done
+          for f in state/posted.json state/attempts.json state/reminders.json state/missed.json; do if [ -e "$f" ]; then git add "$f"; fi; done
           git diff --cached --quiet || (git commit -m "chore: record published stories" && (git push || (git pull --rebase && git push)))

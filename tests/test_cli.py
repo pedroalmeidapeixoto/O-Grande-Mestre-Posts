@@ -39,6 +39,7 @@ def run(project, *extra):
             "--state", str(project / "state" / "posted.json"),
             "--attempts", str(project / "state" / "attempts.json"),
             "--reminders", str(project / "state" / "reminders.json"),
+            "--missed", str(project / "state" / "missed.json"),
             "--now", FRIDAY_18_05,
             *extra,
         ]
@@ -206,6 +207,7 @@ def test_token_reminder_is_sent_even_when_nothing_is_due(project, monkeypatch, s
             "--state", str(project / "state" / "posted.json"),
             "--attempts", str(project / "state" / "attempts.json"),
             "--reminders", str(project / "state" / "reminders.json"),
+            "--missed", str(project / "state" / "missed.json"),
             "--now", "2026-10-09T12:00",
         ]
     )  # fmt: skip
@@ -237,3 +239,38 @@ def test_nothing_due_succeeds_without_credentials(project):
         ]
     )  # fmt: skip
     assert code == cli.EXIT_OK
+
+
+def test_a_story_whose_window_closed_is_reported_once(project, sent):
+    assert run(project, "--now", "2026-10-09T19:00") == cli.EXIT_OK  # 18:00 + 30 min = 18:30
+    assert run(project, "--now", "2026-10-09T19:02") == cli.EXIT_OK
+
+    assert len(sent) == 1
+    assert "promo.jpg" in sent[0] and "09/10 18:00" in sent[0] and "30 min" in sent[0]
+    assert "2026-10-09|18:00|promo.jpg" in json.loads(
+        (project / "state" / "missed.json").read_text()
+    )
+
+
+def test_a_story_that_was_posted_is_never_reported_as_missed(project, monkeypatch, sent):
+    configure(monkeypatch)
+    monkeypatch.setattr(InstagramClient, "publish_story", lambda self, url, *, is_video: "m1")
+    assert run(project) == cli.EXIT_OK  # posts it at 18:05
+    sent.clear()
+
+    assert run(project, "--now", "2026-10-09T19:00") == cli.EXIT_OK
+    assert sent == []
+
+
+def test_a_story_that_was_given_up_on_is_not_reported_as_missed_too(project, sent):
+    (project / "state").mkdir()
+    (project / "state" / "attempts.json").write_text(
+        json.dumps({"2026-10-09|18:00|promo.jpg": {"count": 3}})
+    )
+    assert run(project, "--now", "2026-10-09T19:00") == cli.EXIT_OK
+    assert sent == []
+
+
+def test_missed_stories_are_not_reported_without_telegram(project):
+    assert run(project, "--now", "2026-10-09T19:00") == cli.EXIT_OK
+    assert not (project / "state" / "missed.json").exists()

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+from collections.abc import Callable
 from datetime import datetime
 from pathlib import Path
 from typing import Any
@@ -58,3 +59,38 @@ def record_failure(path: Path, key: str, error: str, at: datetime) -> int:
     attempts[key] = {"count": count, "last_error": error, "last_attempt": at.isoformat()}
     write_json(path, attempts)
     return count
+
+
+def load_missed(path: Path) -> dict[str, str]:
+    """Stories already reported as missed (key -> when), so each is reported only once."""
+    if not path.exists():
+        return {}
+    data: dict[str, str] = json.loads(path.read_text(encoding="utf-8"))
+    return data
+
+
+def record_missed(path: Path, key: str, at: datetime) -> None:
+    missed = load_missed(path)
+    missed[key] = at.isoformat()
+    write_json(path, missed)
+
+
+def prune_records(path: Path, cutoff: datetime, when: Callable[[Any], str]) -> int:
+    """Drop records whose timestamp (read with `when`) is older than `cutoff`.
+
+    Returns how many were dropped. Records without a readable timestamp are kept.
+    """
+    if not path.exists():
+        return 0
+    data: dict[str, Any] = json.loads(path.read_text(encoding="utf-8"))
+    kept: dict[str, Any] = {}
+    for key, value in data.items():
+        try:
+            old = datetime.fromisoformat(when(value)) < cutoff
+        except (KeyError, TypeError, ValueError):
+            old = False
+        if not old:
+            kept[key] = value
+    if len(kept) != len(data):
+        write_json(path, kept)
+    return len(data) - len(kept)
