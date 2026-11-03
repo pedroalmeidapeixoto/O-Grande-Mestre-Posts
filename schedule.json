@@ -11,6 +11,13 @@
       "date": "2026-11-03",
       "time": "10:30",
       "file": "20261103-cardapio-hoje-2026-11-03-8.jpg"
+    },
+    {
+      "days": [
+        "tue"
+      ],
+      "time": "18:00",
+      "file": "sopa-de-carne-terca.jpg"
     }
   ]
 }
