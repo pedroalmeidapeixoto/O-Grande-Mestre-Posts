@@ -1,6 +1,6 @@
 {
   "timezone": "America/Sao_Paulo",
-  "window_minutes": 420,
+  "window_minutes": 60,
   "stories": [
     {
       "date": "2026-11-03",
