@@ -71,6 +71,13 @@
       "date": "2026-11-05",
       "time": "10:00",
       "file": "cardapio-20261105-self-service.jpg"
+    },
+    {
+      "days": [
+        "fri"
+      ],
+      "time": "15:00",
+      "file": "sextou-brinde-sexta.jpg"
     }
   ]
 }
