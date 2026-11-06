@@ -3,16 +3,6 @@
   "window_minutes": 60,
   "stories": [
     {
-      "date": "2026-11-03",
-      "time": "10:40",
-      "file": "cardapio-20261103-self-service.jpg"
-    },
-    {
-      "date": "2026-11-03",
-      "time": "10:30",
-      "file": "20261103-cardapio-hoje-2026-11-03-8.jpg"
-    },
-    {
       "days": [
         "tue"
       ],
