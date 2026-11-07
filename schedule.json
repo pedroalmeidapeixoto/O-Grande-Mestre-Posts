@@ -76,6 +76,22 @@
       "date": "2026-11-06",
       "time": "10:00",
       "file": "cardapio-20261106-self-service.jpg"
+    },
+    {
+      "days": [
+        "mon"
+      ],
+      "time": "18:08",
+      "file": "matuta-saborizadas-video.mp4",
+      "caption": "🥃 *Carta de cachaças Matuta saborizadas*\nMel e limão, canela, maçã verde, banana… Venha escolher a sua favorita no GM!\nSe beber, não dirija. Proibido para menores de 18 anos."
+    },
+    {
+      "days": [
+        "wed"
+      ],
+      "time": "18:04",
+      "file": "matuta-saborizadas-video.mp4",
+      "caption": "🥃 *Carta de cachaças Matuta saborizadas*\nMel e limão, canela, maçã verde, banana… Venha escolher a sua favorita no GM!\nSe beber, não dirija. Proibido para menores de 18 anos."
     }
   ]
 }
