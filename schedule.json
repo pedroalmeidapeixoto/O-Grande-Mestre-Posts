@@ -120,6 +120,14 @@
       "time": "11:00",
       "file": "buffet-aberto-dias-uteis.jpg",
       "caption": "🍽️ *Buffet aberto!* A partir das 11:00, tá servido!\nArroz, feijão, carnes e guarnições. Monte seu prato e vem almoçar no GM!"
+    },
+    {
+      "days": [
+        "mon"
+      ],
+      "time": "17:50",
+      "file": "cardapio-noite-segunda.jpg",
+      "caption": "*🌙 O GRANDE MESTRE - CARDÁPIO DA NOITE: SEGUNDA 🌙*\n*Noite do Cuscuz*\n\n🍽️ *Pratos da Noite*\n\n• Cuscuz na Nata com carne de sol e vinagrete — R$22,00\n• Cuscuz com Mocotó, o clássico nordestino — R$22,00\n• Arrumadinho com Charque (cuscuz, charque e vinagrete) — R$25,00\n\n🍟 *Petiscos*\n\n• Fava — R$20,00\n• Fritas c/ Calabresa — R$50,00\n• Frango a Passarinha — R$35,00\n\n🍹 *Bebidas*\n\n• Caipirinha & Caipiroska de limão, geladinha — R$12,00 cada\n• Kit Montilla (1L Montilla + 1L Coca-Cola + gelo) — R$80,00\n• Cachaças Matuta: Mel e Limão, Canela, Maçã Verde, Banana e Cristal\n• Cervejas geladas: Brahma, Heineken, Antarctica, Spaten e Stella Artois\n\nSe beber, não dirija. Proibido para menores de 18 anos."
     }
   ]
 }
