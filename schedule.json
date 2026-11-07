@@ -108,6 +108,18 @@
       "time": "18:06",
       "file": "arrumadinho-quarta.jpg",
       "caption": "🍛 *Arrumadinho com charque*\nCuscuz, feijão, nata, charque e vinagrete. O prato completo do GM!\nNo GM por *R$ 25,00*."
+    },
+    {
+      "days": [
+        "mon",
+        "tue",
+        "wed",
+        "thu",
+        "fri"
+      ],
+      "time": "11:00",
+      "file": "buffet-aberto-dias-uteis.jpg",
+      "caption": "🍽️ *Buffet aberto!* A partir das 11:00, tá servido!\nArroz, feijão, carnes e guarnições. Monte seu prato e vem almoçar no GM!"
     }
   ]
 }
