@@ -59,3 +59,26 @@ def test_download_failures_are_errors_without_the_token():
     responses.get(f"{BASE}/file/botSECRET/documents/b.jpg", body=requests.Timeout("slow"))
     with pytest.raises(TelegramError, match="Timeout"):
         TelegramApi("SECRET").download("documents/b.jpg")
+
+
+@responses.activate
+def test_upload_sends_the_file_and_fields_as_multipart():
+    responses.post(f"{BASE}/botSECRET/sendPhoto", json={"ok": True, "result": {"message_id": 7}})
+    with open(__file__, "rb") as content:
+        result = TelegramApi("SECRET").upload(
+            "sendPhoto", {"chat_id": "42", "caption": "oi"}, "photo", "art.jpg", content
+        )
+
+    body = responses.calls[0].request.body
+    assert result == {"message_id": 7}
+    assert b'name="photo"; filename="art.jpg"' in body and b'name="chat_id"' in body
+
+
+@responses.activate
+def test_upload_errors_do_not_leak_the_token():
+    responses.post(
+        f"{BASE}/botSECRET/sendPhoto", status=400, json={"ok": False, "description": "too big"}
+    )
+    with open(__file__, "rb") as content, pytest.raises(TelegramError) as exc:
+        TelegramApi("SECRET").upload("sendPhoto", {}, "photo", "a.jpg", content)
+    assert "too big" in str(exc.value) and "SECRET" not in str(exc.value)

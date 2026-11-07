@@ -17,6 +17,7 @@ VIDEO_EXTENSIONS = frozenset({".mp4", ".mov"})
 DEFAULT_TIMEZONE = "America/Sao_Paulo"
 DEFAULT_WINDOW_MINUTES = 30
 MAX_WINDOW_MINUTES = 12 * 60
+MAX_CAPTION_LENGTH = 4000  # a Telegram text message holds 4096 characters
 
 
 class ScheduleError(ValueError):
@@ -31,6 +32,7 @@ class Slot:
     at: time
     file: str
     on: date | None = None  # one-off date; when set, `days` is empty
+    caption: str | None = None  # text for the WhatsApp group, sent to Telegram after posting
 
     def runs_on(self, day: date) -> bool:
         if self.on is not None:
@@ -101,7 +103,15 @@ def _parse_slot(raw: Any, index: int) -> Slot:
     if suffix not in IMAGE_EXTENSIONS | VIDEO_EXTENSIONS:
         raise ScheduleError(f"{where}: unsupported media type {suffix or file!r}")
 
-    return Slot(days=days, at=at, file=str(file), on=on)
+    caption = raw.get("caption")
+    if caption is not None and (
+        not isinstance(caption, str) or not caption.strip() or len(caption) > MAX_CAPTION_LENGTH
+    ):
+        raise ScheduleError(
+            f"{where}: 'caption' must be non-empty text of at most {MAX_CAPTION_LENGTH} characters"
+        )
+
+    return Slot(days=days, at=at, file=str(file), on=on, caption=caption)
 
 
 def parse_schedule(data: Any) -> Schedule:
@@ -133,12 +143,13 @@ def load_schedule(path: Path) -> Schedule:
     return parse_schedule(data)
 
 
-def add_one_off(path: Path, day: date, at: time, file: str) -> None:
+def add_one_off(path: Path, day: date, at: time, file: str, caption: str | None = None) -> None:
     """Append a one-off Story to the schedule file, leaving everything else as it was."""
     data = json.loads(path.read_text(encoding="utf-8"))
-    data.setdefault("stories", []).append(
-        {"date": day.isoformat(), "time": f"{at:%H:%M}", "file": file}
-    )
+    entry = {"date": day.isoformat(), "time": f"{at:%H:%M}", "file": file}
+    if caption:
+        entry["caption"] = caption
+    data.setdefault("stories", []).append(entry)
     _write_schedule(path, data)
 
 

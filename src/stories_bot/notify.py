@@ -5,6 +5,7 @@ from __future__ import annotations
 import logging
 import os
 from collections.abc import Mapping
+from pathlib import Path
 
 import requests
 
@@ -38,3 +39,22 @@ class TelegramNotifier:
             self._api.call("sendMessage", {"chat_id": self._chat_id, "text": text})
         except TelegramError as exc:
             log.warning("Telegram notification failed: %s", exc)
+
+    def send_for_group(self, path: Path, caption: str, *, is_video: bool, label: str) -> None:
+        """Hand over a published art plus its ready-made text, to be forwarded to a
+        WhatsApp group by hand. The art goes first and the text last, as its own message,
+        so it is the easiest thing to long-press and copy.
+        """
+        method, field = ("sendVideo", "video") if is_video else ("sendPhoto", "photo")
+        try:
+            with path.open("rb") as content:
+                self._api.upload(
+                    method,
+                    {"chat_id": self._chat_id, "caption": f"📲 Para o grupo do WhatsApp — {label}"},
+                    field,
+                    path.name,
+                    content,
+                )
+            self._api.call("sendMessage", {"chat_id": self._chat_id, "text": caption})
+        except (TelegramError, OSError) as exc:
+            log.warning("Sending the art for the group failed: %s", exc)

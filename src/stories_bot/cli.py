@@ -155,5 +155,9 @@ def main(argv: Sequence[str] | None = None) -> int:
         record_post(args.state, item.key, media_id, now)
         log.info("Published %s (media id %s)", item.slot.file, media_id)
         _notify(notifier, f"✅ Story publicado: {item.slot.file} ({now:%d/%m %H:%M})")
+        if notifier is not None and item.slot.caption:
+            notifier.send_for_group(
+                path, item.slot.caption, is_video=item.slot.is_video, label=item.slot.file
+            )
 
     return EXIT_FAILED if failures else EXIT_OK

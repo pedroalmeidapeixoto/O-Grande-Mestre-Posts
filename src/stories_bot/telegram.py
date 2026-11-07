@@ -3,12 +3,13 @@
 from __future__ import annotations
 
 from collections.abc import Mapping
-from typing import Any
+from typing import Any, BinaryIO
 
 import requests
 
 API_URL = "https://api.telegram.org"
 REQUEST_TIMEOUT = 30
+UPLOAD_TIMEOUT = 120  # sending a video takes longer than a short JSON call
 
 
 class TelegramError(RuntimeError):
@@ -25,11 +26,23 @@ class TelegramApi:
 
     def call(self, method: str, params: Mapping[str, Any] | None = None) -> Any:
         """Call a Bot API method and return its `result`."""
+        return self._post(method, json=dict(params or {}), timeout=REQUEST_TIMEOUT)
+
+    def upload(
+        self, method: str, params: Mapping[str, Any], field: str, name: str, content: BinaryIO
+    ) -> Any:
+        """Call a Bot API method that sends a file (`sendPhoto`, `sendVideo`, ...)."""
+        return self._post(
+            method,
+            data=dict(params),
+            files={field: (name, content)},
+            timeout=UPLOAD_TIMEOUT,
+        )
+
+    def _post(self, method: str, *, timeout: int, **kwargs: Any) -> Any:
         try:
             response = self._session.post(
-                f"{API_URL}/bot{self._token}/{method}",
-                json=dict(params or {}),
-                timeout=REQUEST_TIMEOUT,
+                f"{API_URL}/bot{self._token}/{method}", timeout=timeout, **kwargs
             )
         except requests.RequestException as exc:
             raise TelegramError(f"network error: {type(exc).__name__}") from None

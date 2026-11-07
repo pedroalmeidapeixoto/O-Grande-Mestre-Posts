@@ -1,11 +1,12 @@
 import json
-from datetime import date, datetime
+from datetime import date, datetime, time
 from zoneinfo import ZoneInfo
 
 import pytest
 
 from stories_bot.schedule import (
     ScheduleError,
+    add_one_off,
     due_stories,
     missed_stories,
     parse_schedule,
@@ -171,3 +172,26 @@ def test_prune_one_offs_removes_only_old_dated_entries(tmp_path):
         "weekly.jpg",
     ]
     assert prune_one_offs(path, date(2026, 10, 7)) == []
+
+
+def test_caption_is_optional_and_kept():
+    plain = make_schedule(FRIDAY_PROMO).slots[0]
+    texted = make_schedule({**FRIDAY_PROMO, "caption": "Bora?"}).slots[0]
+    assert plain.caption is None and texted.caption == "Bora?"
+
+
+@pytest.mark.parametrize("caption", ["", "   ", 5, ["a"], "x" * 4001])
+def test_unusable_captions_are_rejected(caption):
+    with pytest.raises(ScheduleError, match="caption"):
+        make_schedule({**FRIDAY_PROMO, "caption": caption})
+
+
+def test_add_one_off_stores_the_caption_only_when_given(tmp_path):
+    path = tmp_path / "schedule.json"
+    path.write_text(json.dumps({"stories": []}), encoding="utf-8")
+
+    add_one_off(path, date(2026, 11, 9), time(10, 0), "a.jpg")
+    add_one_off(path, date(2026, 11, 9), time(10, 0), "b.jpg", "Cardápio 🍽️")
+
+    stories = json.loads(path.read_text(encoding="utf-8"))["stories"]
+    assert "caption" not in stories[0] and stories[1]["caption"] == "Cardápio 🍽️"

@@ -274,3 +274,50 @@ def test_a_story_that_was_given_up_on_is_not_reported_as_missed_too(project, sen
 def test_missed_stories_are_not_reported_without_telegram(project):
     assert run(project, "--now", "2026-10-09T19:00") == cli.EXIT_OK
     assert not (project / "state" / "missed.json").exists()
+
+
+def with_caption(project, caption="Bora? 🍽️"):
+    (project / "schedule.json").write_text(
+        json.dumps(
+            {
+                "stories": [
+                    {"days": ["fri"], "time": "18:00", "file": "promo.jpg", "caption": caption}
+                ]
+            }
+        )
+    )
+
+
+def test_a_story_with_a_caption_is_handed_over_for_the_group(project, monkeypatch, sent):
+    configure(monkeypatch)
+    with_caption(project)
+    monkeypatch.setattr(InstagramClient, "publish_story", lambda self, url, *, is_video: "m1")
+    handed = []
+    monkeypatch.setattr(
+        TelegramNotifier,
+        "send_for_group",
+        lambda self, path, caption, *, is_video, label: handed.append(
+            (path.name, caption, is_video, label)
+        ),
+    )
+
+    assert run(project) == cli.EXIT_OK
+    assert handed == [("promo.jpg", "Bora? 🍽️", False, "promo.jpg")]
+    assert run(project) == cli.EXIT_OK  # already posted: not handed over twice
+    assert len(handed) == 1
+
+
+def test_no_caption_or_a_failed_publish_hands_nothing_over(project, monkeypatch, sent):
+    configure(monkeypatch)
+    handed = []
+    monkeypatch.setattr(TelegramNotifier, "send_for_group", lambda self, *a, **k: handed.append(a))
+
+    monkeypatch.setattr(InstagramClient, "publish_story", lambda self, url, *, is_video: "m1")
+    assert run(project) == cli.EXIT_OK  # the fixture's slot has no caption
+
+    with_caption(project)
+    (project / "state" / "posted.json").unlink()
+    failing_publish(monkeypatch)
+    assert run(project) == cli.EXIT_FAILED
+
+    assert handed == []

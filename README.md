@@ -98,6 +98,10 @@ The bot replies to confirm, warns when the image is not 9:16, and answers `/fila
 
 Security: the bot only obeys the private chat whose id is `TELEGRAM_CHAT_ID`; messages from anyone else (including groups) are ignored without a reply. Telegram keeps unread messages for 24 hours, so runs must not stay silent for longer than that; a trigger more frequent than GitHub's own cron (for example an external scheduler calling `workflow_dispatch`) keeps replies fast. Telegram only lets bots download files up to 20 MB.
 
+### Text for a WhatsApp group (optional)
+
+WhatsApp offers no safe way for a bot to post in an existing customer group (the official API cannot join one, and unofficial libraries risk a ban), so the last step stays manual but takes two taps. Give a `schedule.json` entry a `caption` (plain text, WhatsApp formatting such as `*bold*` works) and, right after that Story is published, the bot sends the art to your Telegram chat followed by the text as a separate message. Forward the art, copy the text, paste it into the group. Entries without a `caption` behave as before; nothing is sent if the publish fails, and a failed hand-over is only logged.
+
 ## Setup for your own account
 
 1. **Instagram**: a Professional (Business/Creator) account linked to a Facebook Page.
@@ -213,6 +217,10 @@ Com os mesmos dois secrets, o bot também **recebe** artes. Mande o arquivo ao b
 O bot responde confirmando, avisa se a imagem não for 9:16 e responde ao `/fila` com o que está agendado, cada Story com um número. `/cancelar N` remove o Story de número N (e a arte, a menos que outro Story ainda a use); os números seguem a posição no `schedule.json`, então não mudam enquanto outros Stories saem ou vencem. A cada rodada, o passo `stories-inbox` consulta o Telegram, salva a arte em `media/`, acrescenta uma entrada avulsa no `schedule.json` e commita os dois **antes** de publicar, porque a Meta baixa a mídia pela URL pública. A posição das mensagens lidas fica em `state/telegram.json`.
 
 Segurança: o bot só obedece ao chat privado cujo id está em `TELEGRAM_CHAT_ID`; mensagens de qualquer outra pessoa (inclusive grupos) são ignoradas sem resposta. O Telegram guarda mensagens não lidas por 24 horas, então as execuções não podem ficar mudas por mais que isso; um gatilho mais frequente que o cron do GitHub (por exemplo um agendador externo chamando `workflow_dispatch`) deixa as respostas rápidas. O Telegram só deixa bots baixarem arquivos de até 20 MB.
+
+### Texto para um grupo de WhatsApp (opcional)
+
+O WhatsApp não oferece um jeito seguro de um bot postar num grupo de clientes que já existe (a API oficial não entra em grupo existente e as bibliotecas não oficiais arriscam banimento), então o último passo continua manual, mas em dois toques. Dê uma `caption` a uma entrada do `schedule.json` (texto simples; a formatação do WhatsApp, como `*negrito*`, funciona) e, logo depois que aquele Story for publicado, o bot manda a arte para o seu chat no Telegram e, em seguida, o texto como mensagem separada. Encaminhe a arte, copie o texto e cole no grupo. Entradas sem `caption` funcionam como antes; nada é enviado se a publicação falhar, e uma falha nesse envio só é registrada no log.
 
 ## Configuração para sua conta
 
