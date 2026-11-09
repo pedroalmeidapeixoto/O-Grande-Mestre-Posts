@@ -195,3 +195,24 @@ def test_add_one_off_stores_the_caption_only_when_given(tmp_path):
 
     stories = json.loads(path.read_text(encoding="utf-8"))["stories"]
     assert "caption" not in stories[0] and stories[1]["caption"] == "Cardápio 🍽️"
+
+
+def test_a_recurring_story_skips_its_skip_dates():
+    schedule = make_schedule({**FRIDAY_PROMO, "skip_dates": ["2026-10-09"]})
+
+    assert due_stories(schedule, at(9, 18, 5), set()) == []  # the skipped Friday
+    assert [d.slot.file for d in due_stories(schedule, at(10, 18, 5), set())] == ["promo.jpg"]
+    assert missed_stories(schedule, at(9, 19, 0), set()) == []  # and it is not reported missed
+
+
+@pytest.mark.parametrize("skip", ["2026-10-09", [5], ["09/10"], [None]])
+def test_unusable_skip_dates_are_rejected(skip):
+    with pytest.raises(ScheduleError, match="skip_dates"):
+        make_schedule({**FRIDAY_PROMO, "skip_dates": skip})
+
+
+def test_skip_dates_on_a_one_off_is_rejected():
+    with pytest.raises(ScheduleError, match="skip_dates"):
+        make_schedule(
+            {"date": "2026-10-09", "time": "10:00", "file": "a.jpg", "skip_dates": ["2026-10-09"]}
+        )

@@ -33,11 +33,12 @@ class Slot:
     file: str
     on: date | None = None  # one-off date; when set, `days` is empty
     caption: str | None = None  # text for the WhatsApp group, sent to Telegram after posting
+    skip: frozenset[date] = frozenset()  # dates a recurring Story does not run (holidays, moves)
 
     def runs_on(self, day: date) -> bool:
         if self.on is not None:
             return day == self.on
-        return WEEKDAYS[day.weekday()] in self.days
+        return day not in self.skip and WEEKDAYS[day.weekday()] in self.days
 
     @property
     def is_video(self) -> bool:
@@ -111,7 +112,21 @@ def _parse_slot(raw: Any, index: int) -> Slot:
             f"{where}: 'caption' must be non-empty text of at most {MAX_CAPTION_LENGTH} characters"
         )
 
-    return Slot(days=days, at=at, file=str(file), on=on, caption=caption)
+    skip: frozenset[date] = frozenset()
+    if "skip_dates" in raw:
+        if "date" in raw:
+            raise ScheduleError(f"{where}: 'skip_dates' only makes sense on a recurring Story")
+        raw_skip = raw["skip_dates"]
+        try:
+            if not isinstance(raw_skip, list):
+                raise ValueError
+            skip = frozenset(date.fromisoformat(str(item)) for item in raw_skip)
+        except ValueError:
+            raise ScheduleError(
+                f"{where}: 'skip_dates' must be a list of YYYY-MM-DD dates"
+            ) from None
+
+    return Slot(days=days, at=at, file=str(file), on=on, caption=caption, skip=skip)
 
 
 def parse_schedule(data: Any) -> Schedule:

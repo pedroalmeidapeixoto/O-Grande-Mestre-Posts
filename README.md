@@ -75,7 +75,7 @@ stories-bot --dry-run --now 2026-10-09T18:05        # preview what would be publ
 }
 ```
 
-Each Story has **either** `days` (recurring, using `mon tue wed thu fri sat sun`) **or** `date` (`YYYY-MM-DD`, published once and then inert). Files live in [`media/`](media/): images are JPG/PNG at 1080×1920, videos MP4/MOV up to 60 s.
+Each Story has **either** `days` (recurring, using `mon tue wed thu fri sat sun`) **or** `date` (`YYYY-MM-DD`, published once and then inert). A recurring Story can also carry `skip_dates` (a list of `YYYY-MM-DD`) on which it does not run, for holidays or for moving one day's Story to another time (add a one-off for the new time). Files live in [`media/`](media/): images are JPG/PNG at 1080×1920, videos MP4/MOV up to 60 s.
 
 `window_minutes` is how long after its time a Story is still published. GitHub's cron can run hours late, so a wide window (up to 720) trades punctuality for never missing a post.
 
