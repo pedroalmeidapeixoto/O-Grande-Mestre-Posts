@@ -109,7 +109,10 @@
       ],
       "time": "11:00",
       "file": "buffet-aberto-dias-uteis.jpg",
-      "caption": "🍽️ *Buffet aberto!* A partir das 11:00, tá servido!\nArroz, feijão, carnes e guarnições. Monte seu prato e vem almoçar no GM!"
+      "caption": "🍽️ *Buffet aberto!* A partir das 11:00, tá servido!\nArroz, feijão, carnes e guarnições. Monte seu prato e vem almoçar no GM!",
+      "skip_dates": [
+        "2026-11-09"
+      ]
     },
     {
       "days": [
@@ -156,6 +159,12 @@
       "time": "10:18",
       "file": "cardapio-20261109-self-service.jpg",
       "caption": "*🍽️ O GRANDE MESTRE - CARDÁPIO SELF-SERVICE 🍽️*\n\n🍖 *Carnes do Dia*\n\n• Boi Guisado\n• Frango Frito\n• Frango Xadrez\n\n🍚 *Guarnições*\n\n• Feijão Preto\n• Feijão Sempre Verde\n• Arroz Branco\n• Arroz Refogado\n• Macarrão Tradicional\n• Macaxeira\n• Farofa de Cuscuz\n\n🥗 *Saladas e Frutas*\n\n• Tradicional\n• Cenoura Ralada\n• Repolho\n• Abacaxi\n\n💰 *Valores*\nR$17,00 — Uma Carne\nR$22,00 — Duas Carnes\n\n📲 Retire agora pelo WhatsApp: https://wa.link/4lvq6x"
+    },
+    {
+      "date": "2026-11-09",
+      "time": "11:20",
+      "file": "buffet-aberto-dias-uteis.jpg",
+      "caption": "🍽️ *Buffet aberto!* A partir das 11:00, tá servido!\nArroz, feijão, carnes e guarnições. Monte seu prato e vem almoçar no GM!"
     }
   ]
 }
