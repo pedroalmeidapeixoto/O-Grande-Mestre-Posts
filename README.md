@@ -100,7 +100,7 @@ Security: the bot only obeys the private chat whose id is `TELEGRAM_CHAT_ID`; me
 
 ### Text for a WhatsApp group (optional)
 
-WhatsApp offers no safe way for a bot to post in an existing customer group (the official API cannot join one, and unofficial libraries risk a ban), so the last step stays manual but takes two taps. Give a `schedule.json` entry a `caption` (plain text, WhatsApp formatting such as `*bold*` works) and, right after that Story is published, the bot sends the art to your Telegram chat followed by the text as a separate message. Forward the art, copy the text, paste it into the group. Entries without a `caption` behave as before; nothing is sent if the publish fails, and a failed hand-over is only logged.
+WhatsApp offers no safe way for a bot to post in an existing customer group (the official API cannot join one, and unofficial libraries risk a ban), so the last step stays manual but takes two taps. Give a `schedule.json` entry a `caption` (plain text, WhatsApp formatting such as `*bold*` works) and, right after that Story is published, the bot sends the art to your Telegram chat followed by the text as a separate message. The text message carries a **📲 Abrir no WhatsApp** button (a `wa.me` link with the text pre-filled): tap it, pick the group, send; only the art still has to be attached by hand. Texts too long for a button (about 900 characters) are sent without it. Entries without a `caption` behave as before; nothing is sent if the publish fails, and a failed hand-over is only logged.
 
 ## Setup for your own account
 
@@ -220,7 +220,7 @@ Segurança: o bot só obedece ao chat privado cujo id está em `TELEGRAM_CHAT_ID
 
 ### Texto para um grupo de WhatsApp (opcional)
 
-O WhatsApp não oferece um jeito seguro de um bot postar num grupo de clientes que já existe (a API oficial não entra em grupo existente e as bibliotecas não oficiais arriscam banimento), então o último passo continua manual, mas em dois toques. Dê uma `caption` a uma entrada do `schedule.json` (texto simples; a formatação do WhatsApp, como `*negrito*`, funciona) e, logo depois que aquele Story for publicado, o bot manda a arte para o seu chat no Telegram e, em seguida, o texto como mensagem separada. Encaminhe a arte, copie o texto e cole no grupo. Entradas sem `caption` funcionam como antes; nada é enviado se a publicação falhar, e uma falha nesse envio só é registrada no log.
+O WhatsApp não oferece um jeito seguro de um bot postar num grupo de clientes que já existe (a API oficial não entra em grupo existente e as bibliotecas não oficiais arriscam banimento), então o último passo continua manual, mas em dois toques. Dê uma `caption` a uma entrada do `schedule.json` (texto simples; a formatação do WhatsApp, como `*negrito*`, funciona) e, logo depois que aquele Story for publicado, o bot manda a arte para o seu chat no Telegram e, em seguida, o texto como mensagem separada. A mensagem de texto traz o botão **📲 Abrir no WhatsApp** (um link `wa.me` com o texto já preenchido): toque, escolha o grupo e envie; só a arte ainda precisa ser anexada à mão. Textos longos demais para o botão (cerca de 900 caracteres) vão sem ele. Entradas sem `caption` funcionam como antes; nada é enviado se a publicação falhar, e uma falha nesse envio só é registrada no log.
 
 ## Configuração para sua conta
 

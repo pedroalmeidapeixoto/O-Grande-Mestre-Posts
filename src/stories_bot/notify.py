@@ -6,12 +6,26 @@ import logging
 import os
 from collections.abc import Mapping
 from pathlib import Path
+from typing import Any
+from urllib.parse import quote
 
 import requests
 
 from .telegram import TelegramApi, TelegramError
 
 log = logging.getLogger("stories_bot")
+
+WHATSAPP_SHARE_URL = "https://wa.me/?text="
+MAX_BUTTON_URL_LENGTH = 2000  # Telegram refuses inline-button links longer than 2048
+
+
+def whatsapp_share_url(text: str) -> str | None:
+    """A link that opens WhatsApp with `text` filled in, ready to be sent to any chat.
+
+    Returns None when the text is too long to fit in a Telegram button.
+    """
+    url = WHATSAPP_SHARE_URL + quote(text, safe="")
+    return url if len(url) <= MAX_BUTTON_URL_LENGTH else None
 
 
 class TelegramNotifier:
@@ -43,7 +57,8 @@ class TelegramNotifier:
     def send_for_group(self, path: Path, caption: str, *, is_video: bool, label: str) -> None:
         """Hand over a published art plus its ready-made text, to be forwarded to a
         WhatsApp group by hand. The art goes first and the text last, as its own message,
-        so it is the easiest thing to long-press and copy.
+        with a button that opens WhatsApp already filled in with that text (pick the group,
+        send), so only the art needs to be attached.
         """
         method, field = ("sendVideo", "video") if is_video else ("sendPhoto", "photo")
         try:
@@ -55,6 +70,14 @@ class TelegramNotifier:
                     path.name,
                     content,
                 )
-            self._api.call("sendMessage", {"chat_id": self._chat_id, "text": caption})
+            message: dict[str, Any] = {"chat_id": self._chat_id, "text": caption}
+            share = whatsapp_share_url(caption)
+            if share:
+                message["reply_markup"] = {
+                    "inline_keyboard": [[{"text": "📲 Abrir no WhatsApp", "url": share}]]
+                }
+            else:
+                log.warning("The text for %s is too long for a WhatsApp button", label)
+            self._api.call("sendMessage", message)
         except (TelegramError, OSError) as exc:
             log.warning("Sending the art for the group failed: %s", exc)

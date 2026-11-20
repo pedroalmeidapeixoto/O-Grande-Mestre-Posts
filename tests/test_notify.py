@@ -5,7 +5,7 @@ import pytest
 import requests
 import responses
 
-from stories_bot.notify import TelegramNotifier
+from stories_bot.notify import TelegramNotifier, whatsapp_share_url
 
 SEND_URL = "https://api.telegram.org/botSECRET-TOKEN/sendMessage"
 PHOTO_URL = "https://api.telegram.org/botSECRET-TOKEN/sendPhoto"
@@ -61,7 +61,10 @@ def test_send_for_group_sends_the_art_first_and_the_text_last(tmp_path):
     assert [c.request.url for c in responses.calls] == [PHOTO_URL, SEND_URL]
     assert b"jpg-bytes" in responses.calls[0].request.body
     assert b"Para o grupo do WhatsApp" in responses.calls[0].request.body
-    assert json.loads(responses.calls[1].request.body)["text"] == "*Cardápio* 🍽️"
+    sent = json.loads(responses.calls[1].request.body)
+    assert sent["text"] == "*Cardápio* 🍽️"
+    button = sent["reply_markup"]["inline_keyboard"][0][0]
+    assert button["url"] == "https://wa.me/?text=%2ACard%C3%A1pio%2A%20%F0%9F%8D%BD%EF%B8%8F"
 
 
 @responses.activate
@@ -98,3 +101,29 @@ def test_send_for_group_with_a_missing_file_does_not_raise(tmp_path, caplog):
             tmp_path / "gone.jpg", "texto", is_video=False, label="gone.jpg"
         )
     assert "failed" in caplog.text
+
+
+def test_whatsapp_share_url_encodes_the_whole_text():
+    url = whatsapp_share_url("Linha 1\nR$17,00 & mais")
+    assert url == "https://wa.me/?text=Linha%201%0AR%2417%2C00%20%26%20mais"
+
+
+def test_whatsapp_share_url_is_dropped_when_it_would_not_fit_a_button():
+    assert whatsapp_share_url("a" * 1980) is not None
+    assert whatsapp_share_url("a" * 1981) is None
+
+
+@responses.activate
+def test_send_for_group_without_a_button_when_the_text_is_too_long(tmp_path, caplog):
+    art = tmp_path / "menu.jpg"
+    art.write_bytes(b"jpg")
+    responses.post(PHOTO_URL, json={"ok": True})
+    responses.post(SEND_URL, json={"ok": True})
+
+    with caplog.at_level(logging.WARNING, logger="stories_bot"):
+        TelegramNotifier("SECRET-TOKEN", "42").send_for_group(
+            art, "ç" * 500, is_video=False, label="menu.jpg"
+        )
+
+    assert "reply_markup" not in json.loads(responses.calls[1].request.body)
+    assert "too long" in caplog.text
