@@ -65,7 +65,10 @@
       ],
       "time": "15:00",
       "file": "sextou-brinde-sexta.jpg",
-      "caption": "🍻 *Sextou no GM!*\nA semana acabou e a cerveja tá gelada. Chama a turma e vem brindar com a gente!\nSe beber, não dirija. Proibido para menores de 18 anos."
+      "caption": "🍻 *Sextou no GM!*\nA semana acabou e a cerveja tá gelada. Chama a turma e vem brindar com a gente!\nSe beber, não dirija. Proibido para menores de 18 anos.",
+      "skip_dates": [
+        "2026-11-20"
+      ]
     },
     {
       "days": [
@@ -111,7 +114,8 @@
       "file": "buffet-aberto-dias-uteis.jpg",
       "caption": "🍽️ *Buffet aberto!* A partir das 11:00, tá servido!\nArroz, feijão, carnes e guarnições. Monte seu prato e vem almoçar no GM!",
       "skip_dates": [
-        "2026-11-09"
+        "2026-11-09",
+        "2026-11-20"
       ]
     },
     {
@@ -152,7 +156,10 @@
       ],
       "time": "16:00",
       "file": "menu-sextou-sexta.jpg",
-      "caption": "*🍻 O GRANDE MESTRE - MENU DO SEXTOU! 🍻*\n*Hora do Brinde*\n\n🍹 *Bebidas*\n\n• Cervejas: Brahma, Heineken, Antarctica, Spaten e Stella Artois\n• Whiskys: Red Label, Black & White, Buchanan's 12 anos e Old Parr 12 anos\n• Vodkas: Smirnoff, Absolut e Orloff\n• Aperitivos: Campari, Dreher e Fogo Paulista\n• Caipirinha & Caipiroska de limão, geladinha — R$12,00 cada\n\n🥃 *Kits*\n\n• Kit Montilla (1L Montilla + 1L Coca-Cola + gelo) — R$80,00\n• Kit Smirnoff (vodka Smirnoff + saco de gelo) — R$100,00\n\n🍟 *Petiscos*\n\n• Frango a Passarinha — R$35,00\n• Fritas c/ Calabresa — R$50,00\n• Sopa de Carne — R$12,00\n• Fava — R$20,00\n\n🍽️ *Executivos*\n\n• Cuscuz na Nata com carne de sol e vinagrete — R$22,00\n• Cuscuz com Mocotó, o clássico nordestino — R$22,00\n• Arrumadinho com Charque (cuscuz, charque e vinagrete) — R$25,00\n\nSe beber, não dirija. Proibido para menores de 18 anos."
+      "caption": "*🍻 O GRANDE MESTRE - MENU DO SEXTOU! 🍻*\n*Hora do Brinde*\n\n🍹 *Bebidas*\n\n• Cervejas: Brahma, Heineken, Antarctica, Spaten e Stella Artois\n• Whiskys: Red Label, Black & White, Buchanan's 12 anos e Old Parr 12 anos\n• Vodkas: Smirnoff, Absolut e Orloff\n• Aperitivos: Campari, Dreher e Fogo Paulista\n• Caipirinha & Caipiroska de limão, geladinha — R$12,00 cada\n\n🥃 *Kits*\n\n• Kit Montilla (1L Montilla + 1L Coca-Cola + gelo) — R$80,00\n• Kit Smirnoff (vodka Smirnoff + saco de gelo) — R$100,00\n\n🍟 *Petiscos*\n\n• Frango a Passarinha — R$35,00\n• Fritas c/ Calabresa — R$50,00\n• Sopa de Carne — R$12,00\n• Fava — R$20,00\n\n🍽️ *Executivos*\n\n• Cuscuz na Nata com carne de sol e vinagrete — R$22,00\n• Cuscuz com Mocotó, o clássico nordestino — R$22,00\n• Arrumadinho com Charque (cuscuz, charque e vinagrete) — R$25,00\n\nSe beber, não dirija. Proibido para menores de 18 anos.",
+      "skip_dates": [
+        "2026-11-20"
+      ]
     },
     {
       "date": "2026-11-18",
