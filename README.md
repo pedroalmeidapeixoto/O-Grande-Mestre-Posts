@@ -110,6 +110,8 @@ WhatsApp offers no safe way for a bot to post in an existing customer group (the
 4. **GitHub**: create a **public** repository from this code and add two secrets (*Settings → Secrets and variables → Actions*): `IG_USER_ID` and `IG_ACCESS_TOKEN`.
 5. Add artwork to `media/`, fill `schedule.json`, push. The `Publish Stories` workflow does the rest; you can also run it manually from the *Actions* tab.
 
+> **Without a Facebook Page:** the Meta app can use *API setup with Instagram login* instead. Generate the token in the app dashboard (Instagram account added as a tester), run `stories-token-ig` (App Secret optional) to extend it to ~60 days and print `IG_USER_ID`. Tokens starting with `IG` make the bot use `graph.instagram.com` automatically; `IG_API` (`facebook` or `instagram`) can force it.
+
 > **Token renewal:** long-lived tokens expire after ~60 days. Generate a new short token, run `stories-token` again and update the `IG_ACCESS_TOKEN` secret. A failed run shows up as a red workflow and a GitHub email.
 >
 > **Expiry reminder:** set the repository *variable* `IG_TOKEN_EXPIRES` (Settings → Secrets and variables → Actions → Variables) to the day the token expires, as `YYYY-MM-DD`. Read it from Meta's [Access Token Debugger](https://developers.facebook.com/tools/debug/accesstoken/) (the field *Expires*); it is not always 60 days after issue. With Telegram configured, the bot then warns once a day during the last 10 days, and again if it has already expired. When the Graph API reports an invalid or expired token (codes 102/190), the bot stops at once with a clear message instead of retrying every Story.
@@ -229,6 +231,8 @@ O WhatsApp não oferece um jeito seguro de um bot postar num grupo de clientes q
 3. **Token de longa duração**: rode `stories-token` e informe App ID, App Secret e o token curto. Ele imprime o `IG_USER_ID` e um `IG_ACCESS_TOKEN` de ~60 dias. Nada é gravado em disco.
 4. **GitHub**: crie um repositório **público** com este código e cadastre dois secrets (*Settings → Secrets and variables → Actions*): `IG_USER_ID` e `IG_ACCESS_TOKEN`.
 5. Coloque as artes em `media/`, preencha o `schedule.json` e faça push. O workflow `Publish Stories` cuida do resto; também dá para rodá-lo manualmente na aba *Actions*.
+
+> **Sem Página do Facebook:** o app da Meta pode usar a *Configuração da API com login do Instagram*. Gere o token no painel do app (conta do Instagram adicionada como testadora), rode `stories-token-ig` (a chave secreta é opcional) para estendê-lo a ~60 dias e imprimir o `IG_USER_ID`. Tokens que começam com `IG` fazem o bot usar `graph.instagram.com` automaticamente; `IG_API` (`facebook` ou `instagram`) força a escolha.
 
 > **Renovação do token:** tokens de longa duração expiram em ~60 dias. Gere um novo token curto, rode `stories-token` de novo e atualize o secret `IG_ACCESS_TOKEN`.
 >

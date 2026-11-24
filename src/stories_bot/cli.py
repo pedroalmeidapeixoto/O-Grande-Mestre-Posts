@@ -11,7 +11,7 @@ from pathlib import Path
 from zoneinfo import ZoneInfo
 
 from .config import ConfigError, Settings, media_url
-from .instagram import InstagramClient, InstagramError
+from .instagram import API_URLS, InstagramClient, InstagramError
 from .notify import TelegramNotifier
 from .schedule import DueStory, ScheduleError, due_stories, load_schedule, missed_stories
 from .state import (
@@ -128,7 +128,11 @@ def main(argv: Sequence[str] | None = None) -> int:
         try:
             if client is None:  # config is only required once something must be published
                 settings = Settings.from_env()
-                client = InstagramClient(settings.ig_user_id, settings.ig_access_token)
+                client = InstagramClient(
+                    settings.ig_user_id,
+                    settings.ig_access_token,
+                    base_url=API_URLS[settings.ig_api],
+                )
             assert settings is not None
             url = media_url(settings.media_base_url, path.name)
             media_id = client.publish_story(url, is_video=item.slot.is_video)
@@ -142,7 +146,8 @@ def main(argv: Sequence[str] | None = None) -> int:
                 _notify(
                     notifier,
                     f"❌ O Instagram recusou o token ({exc}). "
-                    "Gere um novo com `stories-token` e atualize o secret IG_ACCESS_TOKEN.",
+                    "Gere um novo com `stories-token` (ou `stories-token-ig`) "
+                    "e atualize o secret IG_ACCESS_TOKEN.",
                 )
                 return EXIT_BAD_SETUP
             count = record_failure(args.attempts, item.key, str(exc), now)

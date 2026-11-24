@@ -13,6 +13,10 @@ from typing import Any
 import requests
 
 GRAPH_URL = "https://graph.facebook.com/v21.0"
+INSTAGRAM_LOGIN_URL = "https://graph.instagram.com/v21.0"
+# "facebook": Instagram linked to a Facebook Page. "instagram": Instagram API with Instagram
+# Login (no Page needed); both share the same publishing endpoints.
+API_URLS = {"facebook": GRAPH_URL, "instagram": INSTAGRAM_LOGIN_URL}
 REQUEST_TIMEOUT = 60
 AUTH_ERROR_CODES = frozenset({102, 190})  # invalid session / expired or revoked access token
 
@@ -40,6 +44,7 @@ class InstagramClient:
         user_id: str,
         access_token: str,
         *,
+        base_url: str = GRAPH_URL,
         session: requests.Session | None = None,
         poll_interval: float = 10.0,
         max_polls: int = 30,
@@ -47,6 +52,7 @@ class InstagramClient:
     ) -> None:
         self._user_id = user_id
         self._token = access_token
+        self._base_url = base_url
         self._session = session or requests.Session()
         self._poll_interval = poll_interval
         self._max_polls = max_polls
@@ -85,7 +91,7 @@ class InstagramClient:
         kwargs: dict[str, Any] = {"params": payload} if method == "GET" else {"data": payload}
         try:
             response = self._session.request(
-                method, f"{GRAPH_URL}/{path}", timeout=REQUEST_TIMEOUT, **kwargs
+                method, f"{self._base_url}/{path}", timeout=REQUEST_TIMEOUT, **kwargs
             )
         except requests.RequestException as exc:
             raise InstagramError(f"network error: {type(exc).__name__}") from None

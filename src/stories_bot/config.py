@@ -7,6 +7,8 @@ from collections.abc import Mapping
 from dataclasses import dataclass
 from urllib.parse import quote
 
+from .instagram import API_URLS
+
 
 class ConfigError(RuntimeError):
     """Required configuration is missing."""
@@ -17,6 +19,7 @@ class Settings:
     ig_user_id: str
     ig_access_token: str
     media_base_url: str
+    ig_api: str = "facebook"  # "facebook" (Page-linked) or "instagram" (Instagram Login)
 
     @classmethod
     def from_env(cls, environ: Mapping[str, str] | None = None) -> Settings:
@@ -37,10 +40,18 @@ class Settings:
         if missing:
             raise ConfigError(f"missing environment variable(s): {', '.join(missing)}")
 
+        # Without IG_API, tell the two token kinds apart: Instagram Login tokens start with
+        # "IG", Facebook ones with "EAA".
+        guessed = "instagram" if values["IG_ACCESS_TOKEN"].startswith("IG") else "facebook"
+        api = env.get("IG_API", "").strip().lower() or guessed
+        if api not in API_URLS:
+            raise ConfigError(f"IG_API must be one of {sorted(API_URLS)}, got {api!r}")
+
         return cls(
             ig_user_id=values["IG_USER_ID"],
             ig_access_token=values["IG_ACCESS_TOKEN"],
             media_base_url=base,
+            ig_api=api,
         )
 
 
